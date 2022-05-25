@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ds-alert-deployment
+  namespace: ds
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ds-alert
+  template:
+    metadata:
+      labels:
+        app: ds-alert
+    spec:
+      containers:
+        - name: ds-alert
+          image: apache/dolphinscheduler-alert-server:3.0.0-alpha
+          imagePullPolicy: "IfNotPresent"
+          ports:
+            - containerPort: 50052
+          volumeMounts:
+            - mountPath: /opt/dolphinscheduler/conf/application.yaml
+              name: config-map
+              subPath: application.yaml
+      #          command:
+      #            - "/bin/sh"
+      #          args:
+      #            - "-c"
+      #            - "while true; do echo hello; sleep 10;done"
+      volumes:
+        - name: config-map
+          configMap:
+            name: ds-alert-config

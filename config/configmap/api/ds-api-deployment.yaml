@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ds-api-deployment
+  namespace: ds
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ds-api
+  template:
+    metadata:
+      labels:
+        app: ds-api
+    spec:
+      containers:
+        - name: ds-api
+          image: apache/dolphinscheduler-api:3.0.0-alpha
+          imagePullPolicy: "IfNotPresent"
+          env:
+            - name: REGISTRY_ZOOKEEPER_CONNECT_STRING
+              value: 172.17.0.4:2181
+          ports:
+            - containerPort: 12345
+          volumeMounts:
+            - mountPath: /opt/dolphinscheduler/conf/application.yaml
+              name: config-map
+              subPath: application.yaml
+      #          command:
+      #            - "/bin/sh"
+      #          args:
+      #            - "-c"
+      #            - "while true; do echo hello; sleep 10;done"
+      volumes:
+        - name: config-map
+          configMap:
+            name: ds-api-config

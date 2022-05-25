@@ -1,0 +1,25 @@
+domain: apache.dolphinscheduler.dev
+layout:
+- go.kubebuilder.io/v3
+projectName: dolphinscheduler-operator
+repo: dolphinscheduler-operator
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: apache.dolphinscheduler.dev
+  group: ds
+  kind: DSMaster
+  path: dolphinscheduler-operator/api/v1alpha1
+  version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: apache.dolphinscheduler.dev
+  group: ds
+  kind: DSWorker
+  path: dolphinscheduler-operator/api/v1alpha1
+  version: v1alpha1
+version: "3"

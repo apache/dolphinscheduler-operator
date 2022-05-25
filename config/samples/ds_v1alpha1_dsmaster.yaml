@@ -1,0 +1,13 @@
+apiVersion: ds.apache.dolphinscheduler.dev/v1alpha1
+kind: DSMaster
+metadata:
+  name: ds-master
+  namespace: ds
+  labels:
+    app: ds-master
+spec:
+  replicas: 1
+  zookeeper_connect: "172.17.0.4:2181"
+  version: 3.0.0-alpha
+  repository: apache/dolphinscheduler-master
+

@@ -1,0 +1,15 @@
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: ds-pv-volume
+  labels:
+    app: pv
+  namespace: ds
+spec:
+  storageClassName: standard
+  capacity:
+    storage: 4Gi
+  accessModes:
+    - ReadWriteMany
+  hostPath:
+    path: "/Volumes/ds/logs"

@@ -1,0 +1,59 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: manager-role
+rules:
+- apiGroups:
+  - ds.apache.dolphinscheduler.dev
+  resources:
+  - dsmasters
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ds.apache.dolphinscheduler.dev
+  resources:
+  - dsmasters/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - ds.apache.dolphinscheduler.dev
+  resources:
+  - dsmasters/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ds.apache.dolphinscheduler.dev
+  resources:
+  - dsworkers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ds.apache.dolphinscheduler.dev
+  resources:
+  - dsworkers/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - ds.apache.dolphinscheduler.dev
+  resources:
+  - dsworkers/status
+  verbs:
+  - get
+  - patch
+  - update

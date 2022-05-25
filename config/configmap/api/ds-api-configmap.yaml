@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ds-api-configmap
+  labels:
+    app: ds-api
+  namespace: ds

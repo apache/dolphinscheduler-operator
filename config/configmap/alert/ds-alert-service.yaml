@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ds-alert-service
+  namespace: ds
+spec:
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 50052
+      targetPort: 50052
+      nodePort: 30002
+  selector:
+    app: ds-api
+
+
+
+

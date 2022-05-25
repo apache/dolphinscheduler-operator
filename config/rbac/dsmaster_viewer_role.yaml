@@ -1,0 +1,20 @@
+# permissions for end users to view dsmasters.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: dsmaster-viewer-role
+rules:
+- apiGroups:
+  - ds.apache.dolphinscheduler.dev
+  resources:
+  - dsmasters
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ds.apache.dolphinscheduler.dev
+  resources:
+  - dsmasters/status
+  verbs:
+  - get

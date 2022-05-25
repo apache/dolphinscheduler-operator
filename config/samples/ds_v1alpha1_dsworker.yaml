@@ -1,0 +1,12 @@
+apiVersion: ds.apache.dolphinscheduler.dev/v1alpha1
+kind: DSWorker
+metadata:
+  name: ds-worker
+  namespace: ds
+  labels:
+    app: ds-worker
+spec:
+  replicas: 3
+  zookeeper_connect: "172.17.0.4:2181"
+  version: 3.0.0-alpha
+  repository: apache/dolphinscheduler-worker
