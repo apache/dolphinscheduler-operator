@@ -1,5 +1,10 @@
 # dolphinscheduler-operator
 
+## feature 
+
+1. deployment the master ,worker moudle 
+2. scale the pods numbers with one commond 
+3. update the master,worker version  quickly (not include the sql)
 
 ## Project Status
 
