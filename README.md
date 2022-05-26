@@ -39,7 +39,7 @@
 
     if had no zookeeper ,the doployment file is in config/configmap/zookeeper ,run *"kubectl apply -f zookeeper/"* and record the ip ,eg :172.17.0.4
 
-4.  **merge the configmaps**
+4.  **create  and merge the configmaps**
 
     replace the postgressql ip in application.yaml
     
