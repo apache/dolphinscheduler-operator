@@ -66,6 +66,16 @@
     
     run *"kubectl apply -f api/"* in config/configmap/
     
+7. **create pv and pvc (not required)**    
+   
+    if you had pv and pvc ,you can config it in config/sameples 
+    
+    or you can create it with config/configmap/ds-pv.yaml and config/configmap/ds-pvc.yaml
+    
+    and you can mount the lib in dolphinscheduler /opt/soft  in config/samples/ds_v1alpha1_dsworker.yaml with paramter named lib_pvc_name  
+    
+    mount the logs in /opt/dolphinscheduler/logs with the paramters named log_pvc_name with pvcname
+    
  ## how to test
  
     in current project  run *"make manifests && make install && make run"* 
