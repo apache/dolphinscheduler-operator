@@ -35,6 +35,23 @@ spec:
           spec:
             description: DSWorkerSpec defines the desired state of DSWorker
             properties:
+              datasource:
+                description: Datasource is the config of database
+                properties:
+                  drive_name:
+                    type: string
+                  password:
+                    type: string
+                  url:
+                    type: string
+                  username:
+                    type: string
+                required:
+                - drive_name
+                - password
+                - url
+                - username
+                type: object
               lib_pvc_name:
                 description: LibPvcName define the address of lib pvc,the position
                   is /opt/soft
@@ -1494,6 +1511,7 @@ spec:
                   ,and it will be written to ENV
                 type: string
             required:
+            - datasource
             - replicas
             type: object
           status:

@@ -25,6 +25,7 @@ import (
 
 // DSMasterSpec defines the desired state of DSMaster
 type DSMasterSpec struct {
+	Datasource *DateSourceTemplate `json:"datasource"`
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 

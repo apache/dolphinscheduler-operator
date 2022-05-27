@@ -108,16 +108,6 @@ func newDSMasterPod(cr *dsv1alpha1.DSMaster) *corev1.Pod {
 				dsv1alpha1.DsServiceLabel: dsv1alpha1.DsServiceLabelValue},
 		},
 		Spec: corev1.PodSpec{
-			Volumes: []corev1.Volume{
-				{
-					Name: dsMasterConfig,
-					VolumeSource: corev1.VolumeSource{
-						ConfigMap: &corev1.ConfigMapVolumeSource{
-							LocalObjectReference: corev1.LocalObjectReference{Name: dsMasterConfig},
-						},
-					},
-				},
-			},
 			Hostname:          podName,
 			Subdomain:         dsv1alpha1.DsServiceLabelValue,
 			SetHostnameAsFQDN: &isSetHostnameAsFQDN,
@@ -126,16 +116,25 @@ func newDSMasterPod(cr *dsv1alpha1.DSMaster) *corev1.Pod {
 					Name:            cr.Name,
 					Image:           ImageName(cr.Spec.Repository, cr.Spec.Version),
 					ImagePullPolicy: corev1.PullIfNotPresent,
-					Env: []corev1.EnvVar{{
-						Name:  dsv1alpha1.EnvZookeeper,
-						Value: cr.Spec.ZookeeperConnect,
-					}},
-					VolumeMounts: []corev1.VolumeMount{
+					Env: []corev1.EnvVar{
 						{
-							Name:      dsMasterConfig,
-							MountPath: "/opt/dolphinscheduler/conf/application.yaml",
-							ReadOnly:  false,
-							SubPath:   "application.yaml",
+							Name:  dsv1alpha1.EnvZookeeper,
+							Value: cr.Spec.ZookeeperConnect,
+						}, {
+							Name:  dsv1alpha1.DataSourceDriveName,
+							Value: cr.Spec.Datasource.DriveName,
+						},
+						{
+							Name:  dsv1alpha1.DataSourceUrl,
+							Value: cr.Spec.Datasource.Url,
+						},
+						{
+							Name:  dsv1alpha1.DataSourceUserName,
+							Value: cr.Spec.Datasource.UserName,
+						},
+						{
+							Name:  dsv1alpha1.DataSourcePassWord,
+							Value: cr.Spec.Datasource.Password,
 						},
 					},
 				},

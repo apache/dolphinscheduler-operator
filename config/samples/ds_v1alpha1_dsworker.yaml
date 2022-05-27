@@ -6,7 +6,12 @@ metadata:
   labels:
     app: ds-worker
 spec:
-  replicas: 3
-  zookeeper_connect: "172.17.0.4:2181"
+  replicas: 1
+  zookeeper_connect: "172.17.0.5:2181"
   version: 3.0.0-alpha
   repository: apache/dolphinscheduler-worker
+  datasource:
+    drive_name: "org.postgresql.Driver"
+    url: "jdbc:postgresql://172.17.0.4:5432/dolphinscheduler"
+    username: "postgresadmin"
+    password: "admin12345"

@@ -20,35 +20,17 @@ import (
 	dsv1alpha1 "dolphinscheduler-operator/api/v1alpha1"
 	"fmt"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 )
 
 const (
 	dsLogVolumeName       = "ds-log"
 	dsLogVolumeMountDir   = "/opt/dolphinscheduler/logs"
-	dsLogPVName           = "pv"
 	dsShareVolumeName     = "ds-soft"
 	dsShareVolumeMountDir = "/opt/soft"
 )
 
-func GetDsVersion(pod *corev1.Pod) string {
-	return pod.Labels[dsv1alpha1.DsVersionLabel]
-}
-
-func SetDSVersion(pod *corev1.Pod, version string) {
-	pod.Labels[dsv1alpha1.DsVersionLabel] = version
-}
-
-func GetPodNames(pods []*corev1.Pod) []string {
-	if len(pods) == 0 {
-		return nil
-	}
-	res := make([]string, 0)
-	for _, p := range pods {
-		res = append(res, p.Name)
-	}
-	return res
+type PodTemplate struct {
 }
 
 func applyPodPolicy(pod *corev1.Pod, policy *dsv1alpha1.PodPolicy) {
@@ -88,11 +70,6 @@ func containerWithRequirements(c corev1.Container, r corev1.ResourceRequirements
 	return c
 }
 
-// PVCNameFromMember the way we get PVC name from the member name
-func PVCNameFromMember(memberName string) string {
-	return memberName
-}
-
 func ImageName(repo, version string) string {
 	return fmt.Sprintf("%s:%v", repo, version)
 }
@@ -106,25 +83,8 @@ func LabelsForCluster(lbs string) map[string]string {
 	return labels.Set{dsv1alpha1.DsAppName: lbs}
 }
 
-func LabelsForPV() map[string]string {
-	return labels.Set{dsv1alpha1.DsAppName: dsLogPVName}
-}
-
 func LabelsForService() map[string]string {
 	return labels.Set{dsv1alpha1.DsServiceLabel: dsv1alpha1.DsServiceLabelValue}
-}
-
-// AddDSVolumeToPod abstract the process of appending volume spec to pod spec
-func AddDSVolumeToPod(pod *corev1.Pod, pvc *corev1.PersistentVolumeClaim) {
-	vol := corev1.Volume{Name: dsLogVolumeName}
-	if pvc != nil {
-		vol.VolumeSource = corev1.VolumeSource{
-			PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: pvc.Name},
-		}
-	} else {
-		vol.VolumeSource = corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}}
-	}
-	pod.Spec.Volumes = append(pod.Spec.Volumes, vol)
 }
 
 // AddLogVolumeToPod abstract the process of appending volume spec to pod spec
@@ -170,44 +130,6 @@ func AddLibVolumeToPod(pod *corev1.Pod, pvcName string) {
 	pod.Spec.Volumes = append(pod.Spec.Volumes, vol)
 
 	pod.Spec.Containers[0].VolumeMounts = append(pod.Spec.Containers[0].VolumeMounts, vom)
-}
-
-// NewLogPVC create PVC  from dsMaster pod's PVC spec
-//func NewLogPVC(cluster *dsv1alpha1.DSMaster, pod *corev1.Pod, storageClassName string) *corev1.PersistentVolumeClaim {
-//
-//    pvc := &corev1.PersistentVolumeClaim{
-//        ObjectMeta: metav1.ObjectMeta{
-//            GenerateName: cluster.Name + "-pvc",
-//            Namespace:    cluster.Namespace,
-//            Labels:       LabelsForCluster(dsLogVolumeName),
-//        },
-//        Spec: corev1.PersistentVolumeClaimSpec{
-//            AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteMany},
-//            Resources: corev1.ResourceRequirements{
-//                Requests: corev1.ResourceList{
-//                    corev1.ResourceStorage: resource.MustParse(cluster.Spec.LogCapacity),
-//                },
-//            },
-//            StorageClassName: &storageClassName,
-//            Selector: &metav1.LabelSelector{
-//                MatchLabels: LabelsForPV(),
-//            },
-//        },
-//    }
-//    return pvc
-//}
-
-// NewDSWorkerPodPVC create PVC object from dsMaster pod's PVC spec
-func NewDSWorkerPodPVC(cluster *dsv1alpha1.DSWorker, pod *corev1.Pod, lbs string) *corev1.PersistentVolumeClaim {
-	pvc := &corev1.PersistentVolumeClaim{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      PVCNameFromMember(pod.Name),
-			Namespace: cluster.Namespace,
-			Labels:    LabelsForCluster(lbs),
-		},
-		Spec: *cluster.Spec.Pod.PersistentVolumeClaimSpec,
-	}
-	return pvc
 }
 
 // mergeLabels merges l2 into l1. Conflicting label will be skipped.

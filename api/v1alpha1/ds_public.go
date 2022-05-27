@@ -30,6 +30,10 @@ const (
 	EnvZookeeper        = "REGISTRY_ZOOKEEPER_CONNECT_STRING"
 	DsServiceLabel      = "service-name"
 	DsServiceLabelValue = "ds-service"
+	DataSourceDriveName = "SPRING_DATASOURCE_DRIVER_CLASS_NAME"
+	DataSourceUrl       = "SPRING_DATASOURCE_URL"
+	DataSourceUserName  = "SPRING_DATASOURCE_USERNAME"
+	DataSourcePassWord  = "SPRING_DATASOURCE_PASSWORD"
 )
 
 // DsCondition represents one current condition of a ds cluster.
@@ -117,4 +121,11 @@ func RandStr(length int) string {
 		result = append(result, bytes[rand.Intn(len(bytes))])
 	}
 	return string(result)
+}
+
+type DateSourceTemplate struct {
+	DriveName string `json:"drive_name"`
+	Url       string `json:"url"`
+	UserName  string `json:"username"`
+	Password  string `json:"password"`
 }

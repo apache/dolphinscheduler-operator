@@ -35,6 +35,22 @@ spec:
           spec:
             description: DSMasterSpec defines the desired state of DSMaster
             properties:
+              datasource:
+                properties:
+                  drive_name:
+                    type: string
+                  password:
+                    type: string
+                  url:
+                    type: string
+                  username:
+                    type: string
+                required:
+                - drive_name
+                - password
+                - url
+                - username
+                type: object
               log_pvc_name:
                 description: LogPvcName defines the  log capacity of application ,the
                   position is /opt/dolphinscheduler/logs eg 20Gi
@@ -1490,6 +1506,7 @@ spec:
                   ,and it will be written to ENV
                 type: string
             required:
+            - datasource
             - replicas
             type: object
           status:

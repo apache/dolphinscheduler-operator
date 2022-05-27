@@ -127,13 +127,21 @@ func newDSWorkerPod(cr *dsv1alpha1.DSWorker) *corev1.Pod {
 					Env: []corev1.EnvVar{{
 						Name:  dsv1alpha1.EnvZookeeper,
 						Value: cr.Spec.ZookeeperConnect,
-					}},
-					VolumeMounts: []corev1.VolumeMount{
+					}, {
+						Name:  dsv1alpha1.DataSourceDriveName,
+						Value: cr.Spec.Datasource.DriveName,
+					},
 						{
-							Name:      dsWorkerConfig,
-							MountPath: "/opt/dolphinscheduler/conf/application.yaml",
-							ReadOnly:  false,
-							SubPath:   "application.yaml",
+							Name:  dsv1alpha1.DataSourceUrl,
+							Value: cr.Spec.Datasource.Url,
+						},
+						{
+							Name:  dsv1alpha1.DataSourceUserName,
+							Value: cr.Spec.Datasource.UserName,
+						},
+						{
+							Name:  dsv1alpha1.DataSourcePassWord,
+							Value: cr.Spec.Datasource.Password,
 						},
 					},
 				},

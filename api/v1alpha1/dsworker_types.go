@@ -25,6 +25,8 @@ import (
 
 // DSWorkerSpec defines the desired state of DSWorker
 type DSWorkerSpec struct {
+	//Datasource is the config of database
+	Datasource *DateSourceTemplate `json:"datasource"`
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
@@ -52,6 +54,7 @@ type DSWorkerSpec struct {
 
 	//ZookeeperConnect  is the address string of zookeeper ,and it will be written to ENV
 	ZookeeperConnect string `json:"zookeeper_connect,omitempty"`
+
 	// Pod defines the policy to create pod for the dm-worker pod.
 	// Updating Pod does not take effect on any existing dm-worker pods.
 	Pod *PodPolicy `json:"pod,omitempty"`
