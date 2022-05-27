@@ -107,16 +107,6 @@ func newDSWorkerPod(cr *dsv1alpha1.DSWorker) *corev1.Pod {
 			},
 		},
 		Spec: corev1.PodSpec{
-			Volumes: []corev1.Volume{
-				{
-					Name: dsWorkerConfig,
-					VolumeSource: corev1.VolumeSource{
-						ConfigMap: &corev1.ConfigMapVolumeSource{
-							LocalObjectReference: corev1.LocalObjectReference{Name: dsWorkerConfig},
-						},
-					},
-				},
-			},
 			Hostname:  podName,
 			Subdomain: dsv1alpha1.DsServiceLabelValue,
 			Containers: []corev1.Container{
@@ -144,6 +134,12 @@ func newDSWorkerPod(cr *dsv1alpha1.DSWorker) *corev1.Pod {
 							Value: cr.Spec.Datasource.Password,
 						},
 					},
+					Command: []string{
+						"/bin/sh", "-c",
+					},
+					Args: []string{"sed -i 's/alert-listen-host: localhost/alert-listen-host: $(DS_ALERT_SERVICE_SERVICE_HOST)/g' conf/application.yaml ;" +
+						" sed -i 's/50052/$(DS_ALERT_SERVICE_SERVICE_PORT)/g' conf/application.yaml ; " +
+						"./bin/start.sh"},
 				},
 			},
 		},

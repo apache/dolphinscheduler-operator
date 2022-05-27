@@ -68,6 +68,9 @@ type DSWorkerSpec struct {
 
 	//LibPvcName define the address of lib pvc,the position is /opt/soft
 	LibPvcName string `json:"lib_pvc_name,omitempty"`
+
+	//AlertConfig is the config of alertService
+	AlertConfig *AlertConfig `json:"alert_config,omitempty"`
 }
 
 // DSWorkerStatus defines the observed state of DSWorker
@@ -122,4 +125,9 @@ func (c *DSWorker) IsPodPVEnabled() bool {
 		return podPolicy.PersistentVolumeClaimSpec != nil
 	}
 	return false
+}
+
+type AlertConfig struct {
+	ServiceUrl string `json:"service_url,omitempty"`
+	Port       string `json:"port,omitempty"`
 }

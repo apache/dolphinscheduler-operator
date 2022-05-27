@@ -35,6 +35,14 @@ spec:
           spec:
             description: DSWorkerSpec defines the desired state of DSWorker
             properties:
+              alert_config:
+                description: AlertConfig is the config of alertService
+                properties:
+                  port:
+                    type: string
+                  service_url:
+                    type: string
+                type: object
               datasource:
                 description: Datasource is the config of database
                 properties:
