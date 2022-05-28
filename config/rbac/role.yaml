@@ -8,6 +8,32 @@ rules:
 - apiGroups:
   - ds.apache.dolphinscheduler.dev
   resources:
+  - dsalerts
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ds.apache.dolphinscheduler.dev
+  resources:
+  - dsalerts/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - ds.apache.dolphinscheduler.dev
+  resources:
+  - dsalerts/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ds.apache.dolphinscheduler.dev
+  resources:
   - dsmasters
   verbs:
   - create

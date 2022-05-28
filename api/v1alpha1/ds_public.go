@@ -24,16 +24,18 @@ const (
 	ClusterUpgradeAnnotation      = "github.com/nobolity/upgrade"
 	ClusterBootStrappedAnnotation = "github.com/nobolity/bootstrapped"
 
-	DsAppName           = "app"
-	DsVersionLabel      = "ds-version"
-	FinalizerName       = "github.com.nobolity.dolphinscheduler-operator"
-	EnvZookeeper        = "REGISTRY_ZOOKEEPER_CONNECT_STRING"
-	DsServiceLabel      = "service-name"
-	DsServiceLabelValue = "ds-service"
-	DataSourceDriveName = "SPRING_DATASOURCE_DRIVER_CLASS_NAME"
-	DataSourceUrl       = "SPRING_DATASOURCE_URL"
-	DataSourceUserName  = "SPRING_DATASOURCE_USERNAME"
-	DataSourcePassWord  = "SPRING_DATASOURCE_PASSWORD"
+	DsAppName              = "app"
+	DsVersionLabel         = "ds-version"
+	FinalizerName          = "github.com.nobolity.dolphinscheduler-operator"
+	EnvZookeeper           = "REGISTRY_ZOOKEEPER_CONNECT_STRING"
+	DsServiceLabel         = "service-name"
+	DsServiceLabelValue    = "ds-service"
+	DsAlertServiceValue    = "ds-alert-service"
+	DsAlertDeploymentValue = "ds-alert-deployment"
+	DataSourceDriveName    = "SPRING_DATASOURCE_DRIVER_CLASS_NAME"
+	DataSourceUrl          = "SPRING_DATASOURCE_URL"
+	DataSourceUserName     = "SPRING_DATASOURCE_USERNAME"
+	DataSourcePassWord     = "SPRING_DATASOURCE_PASSWORD"
 )
 
 // DsCondition represents one current condition of a ds cluster.

@@ -9,9 +9,8 @@ spec:
     - protocol: TCP
       port: 50052
       targetPort: 50052
-      nodePort: 30002
   selector:
-    app: ds-api
+    app: ds-alert
 
 
 

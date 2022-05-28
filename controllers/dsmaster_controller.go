@@ -31,6 +31,10 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/source"
+	"sync"
 	"time"
 
 	dsv1alpha1 "dolphinscheduler-operator/api/v1alpha1"
@@ -38,7 +42,6 @@ import (
 
 const (
 	dsMasterLabel  = "ds-master"
-	dsMasterConfig = "ds-master-config"
 	dsServiceLabel = "ds-operator-service"
 	dsServiceName  = "ds-operator-service"
 )
@@ -52,6 +55,8 @@ type DSMasterReconciler struct {
 	client.Client
 	Scheme   *runtime.Scheme
 	Recorder record.EventRecorder
+	clusters sync.Map
+	resyncCh chan event.GenericEvent
 }
 
 //+kubebuilder:rbac:groups=ds.apache.dolphinscheduler.dev,resources=dsmasters,verbs=get;list;watch;create;update;patch;delete
@@ -84,9 +89,6 @@ func (r *DSMasterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	// Handler finalizer
 	// examine DeletionTimestamp to determine if object is under deletion
 	if cluster.ObjectMeta.DeletionTimestamp.IsZero() {
-		ms, _ := r.podMemberSet(ctx, cluster)
-		logger.Info("pods is", "pod", ms)
-
 		// The object is not being deleted, so if it does not have our finalizer,
 		// then lets add the finalizer and update the object. This is equivalent
 		// registering our finalizer.
@@ -111,9 +113,6 @@ func (r *DSMasterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 				return ctrl.Result{}, err
 			}
 		}
-
-		ms, _ := r.podMemberSet(ctx, cluster)
-		logger.Info("pods is", "pod", ms)
 		// Stop reconciliation as the item is being deleted
 		return ctrl.Result{}, nil
 	}
@@ -170,13 +169,26 @@ func (r *DSMasterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	logger.Info("******************************************************")
 	desired.Status.Phase = dsv1alpha1.DsPhaseNone
+	if err := r.Update(ctx, desired); err != nil {
+		return ctrl.Result{}, err
+	}
 	return ctrl.Result{Requeue: false}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *DSMasterReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	r.clusters = sync.Map{}
+	r.resyncCh = make(chan event.GenericEvent)
+	r.Recorder = mgr.GetEventRecorderFor("master-controller")
+
+	filter := &Predicate{}
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&dsv1alpha1.DSMaster{}).
+		Owns(&corev1.Pod{}).
+		Owns(&corev1.Service{}).
+		Watches(&source.Channel{Source: r.resyncCh}, &handler.EnqueueRequestForObject{}).
+		// or use WithEventFilter()
+		WithEventFilter(filter).
 		Complete(r)
 }
 
@@ -317,4 +329,74 @@ func (r *DSMasterReconciler) ensureMasterService(ctx context.Context, cluster *d
 		}
 	}
 	return nil
+}
+
+type Predicate struct{}
+
+// Create will be trigger when object created or controller restart
+// first time see the object
+func (r *Predicate) Create(evt event.CreateEvent) bool {
+	switch evt.Object.(type) {
+	case *dsv1alpha1.DSMaster:
+		return true
+	}
+	return false
+}
+
+func (r *Predicate) Update(evt event.UpdateEvent) bool {
+	switch evt.ObjectNew.(type) {
+	case *dsv1alpha1.DSMaster:
+		oldC := evt.ObjectOld.(*dsv1alpha1.DSMaster)
+		newC := evt.ObjectNew.(*dsv1alpha1.DSMaster)
+
+		logger.V(5).Info("Running update filter",
+			"Old size", oldC.Spec.Replicas,
+			"New size", newC.Spec.Replicas,
+			"old paused", oldC.Spec.Paused,
+			"new paused", newC.Spec.Paused,
+			"old object deletion", !oldC.ObjectMeta.DeletionTimestamp.IsZero(),
+			"new object deletion", !newC.ObjectMeta.DeletionTimestamp.IsZero())
+
+		// Only care about size, version and paused fields
+		if oldC.Spec.Replicas != newC.Spec.Replicas {
+			return true
+		}
+
+		if oldC.Spec.Paused != newC.Spec.Paused {
+			return true
+		}
+
+		if oldC.Spec.Version != newC.Spec.Version {
+			return true
+		}
+
+		// If cluster has been marked as deleted, check if we have remove our finalizer
+		// If it has our finalizer, indicating our cleaning up works has not been done.
+		if oldC.DeletionTimestamp.IsZero() && !newC.DeletionTimestamp.IsZero() {
+			if controllerutil.ContainsFinalizer(newC, dsv1alpha1.FinalizerName) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func (r *Predicate) Delete(evt event.DeleteEvent) bool {
+	switch evt.Object.(type) {
+	case *dsv1alpha1.DSMaster:
+		return true
+	case *corev1.Pod:
+		return true
+	case *corev1.Service:
+		return true
+	}
+	return false
+}
+
+func (r *Predicate) Generic(evt event.GenericEvent) bool {
+	switch evt.Object.(type) {
+	case *dsv1alpha1.DSMaster:
+		return true
+	}
+	return false
 }
