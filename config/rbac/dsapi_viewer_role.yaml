@@ -1,0 +1,20 @@
+# permissions for end users to view dsapis.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: dsapi-viewer-role
+rules:
+- apiGroups:
+  - ds.apache.dolphinscheduler.dev
+  resources:
+  - dsapis
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ds.apache.dolphinscheduler.dev
+  resources:
+  - dsapis/status
+  verbs:
+  - get

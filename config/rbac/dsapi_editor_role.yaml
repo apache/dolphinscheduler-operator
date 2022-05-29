@@ -1,0 +1,24 @@
+# permissions for end users to edit dsapis.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: dsapi-editor-role
+rules:
+- apiGroups:
+  - ds.apache.dolphinscheduler.dev
+  resources:
+  - dsapis
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ds.apache.dolphinscheduler.dev
+  resources:
+  - dsapis/status
+  verbs:
+  - get
