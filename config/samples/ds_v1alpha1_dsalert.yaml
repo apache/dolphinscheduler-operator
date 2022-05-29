@@ -1,0 +1,16 @@
+apiVersion: ds.apache.dolphinscheduler.dev/v1alpha1
+kind: DSAlert
+metadata:
+  name: ds-alert
+  namespace: ds
+  labels:
+    app: ds-alert
+spec:
+  replicas: 1
+  version: 3.0.0-alpha
+  repository: apache/dolphinscheduler-alert-server
+  datasource:
+    drive_name: "org.postgresql.Driver"
+    url: "jdbc:postgresql://172.17.0.4:5432/dolphinscheduler"
+    username: "postgresadmin"
+    password: "admin12345"

@@ -43,7 +43,6 @@ import (
 const (
 	dsMasterLabel  = "ds-master"
 	dsServiceLabel = "ds-operator-service"
-	dsServiceName  = "ds-operator-service"
 )
 
 var (
@@ -54,7 +53,7 @@ var (
 type DSMasterReconciler struct {
 	client.Client
 	Scheme   *runtime.Scheme
-	Recorder record.EventRecorder
+	recorder record.EventRecorder
 	clusters sync.Map
 	resyncCh chan event.GenericEvent
 }
@@ -79,7 +78,7 @@ func (r *DSMasterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	if err := r.Client.Get(ctx, req.NamespacedName, cluster); err != nil {
 		if errors.IsNotFound(err) {
-			r.Recorder.Event(cluster, corev1.EventTypeWarning, "dsMaster is not Found", "dsMaster is not Found")
+			r.recorder.Event(cluster, corev1.EventTypeWarning, "dsMaster is not Found", "dsMaster is not Found")
 			return ctrl.Result{}, nil
 		}
 		return ctrl.Result{}, err
@@ -125,7 +124,7 @@ func (r *DSMasterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		if err := r.Status().Patch(ctx, desired, client.MergeFrom(cluster)); err != nil {
 			return ctrl.Result{}, err
 		}
-		r.Recorder.Event(cluster, corev1.EventTypeNormal, "the spec status is paused", "do nothing")
+		r.recorder.Event(cluster, corev1.EventTypeNormal, "the spec status is paused", "do nothing")
 		return ctrl.Result{}, nil
 	}
 
@@ -179,7 +178,7 @@ func (r *DSMasterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 func (r *DSMasterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.clusters = sync.Map{}
 	r.resyncCh = make(chan event.GenericEvent)
-	r.Recorder = mgr.GetEventRecorderFor("master-controller")
+	r.recorder = mgr.GetEventRecorderFor("master-controller")
 
 	filter := &Predicate{}
 	return ctrl.NewControllerManagedBy(mgr).
@@ -217,7 +216,7 @@ func (r *DSMasterReconciler) ensureScaled(ctx context.Context, cluster *dsv1alph
 	if len(ms) < cluster.Spec.Replicas {
 		err = r.createMember(ctx, cluster)
 		if err != nil {
-			r.Recorder.Event(cluster, corev1.EventTypeWarning, "cannot create the new ds-master pod", "the ds-master pod had been created failed")
+			r.recorder.Event(cluster, corev1.EventTypeWarning, "cannot create the new ds-master pod", "the ds-master pod had been created failed")
 			return true, err
 		}
 		// Cluster modified, next reconcile will enter r.ensureMembers()

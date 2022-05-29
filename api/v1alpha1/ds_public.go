@@ -30,12 +30,18 @@ const (
 	EnvZookeeper           = "REGISTRY_ZOOKEEPER_CONNECT_STRING"
 	DsServiceLabel         = "service-name"
 	DsServiceLabelValue    = "ds-service"
+	DsAlert                = "ds-alert"
 	DsAlertServiceValue    = "ds-alert-service"
 	DsAlertDeploymentValue = "ds-alert-deployment"
+	DsApi                  = "ds-api"
+	DsApiServiceValue      = "ds-api-service"
+	DsApiDeploymentValue   = "ds-api-deployment"
 	DataSourceDriveName    = "SPRING_DATASOURCE_DRIVER_CLASS_NAME"
 	DataSourceUrl          = "SPRING_DATASOURCE_URL"
 	DataSourceUserName     = "SPRING_DATASOURCE_USERNAME"
 	DataSourcePassWord     = "SPRING_DATASOURCE_PASSWORD"
+	DsApiPort              = 12345
+	DsAlertPort            = 50052
 )
 
 // DsCondition represents one current condition of a ds cluster.

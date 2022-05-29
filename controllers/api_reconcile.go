@@ -24,22 +24,24 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-func createAlertService(cluster *dsv1alpha1.DSAlert) *corev1.Service {
+func createApiService(cluster *dsv1alpha1.DSApi) *corev1.Service {
 	service := corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      dsv1alpha1.DsAlertServiceValue,
+			Name:      dsv1alpha1.DsApiServiceValue,
 			Namespace: cluster.Namespace,
-			Labels:    map[string]string{dsv1alpha1.DsAppName: dsv1alpha1.DsAlertServiceValue},
+			Labels:    map[string]string{dsv1alpha1.DsAppName: dsv1alpha1.DsApiServiceValue},
 		},
 		Spec: corev1.ServiceSpec{
-			Selector: map[string]string{dsv1alpha1.DsAppName: dsv1alpha1.DsAlert},
+			Type:     corev1.ServiceTypeNodePort,
+			Selector: map[string]string{dsv1alpha1.DsAppName: dsv1alpha1.DsApi},
 			Ports: []corev1.ServicePort{
 				{
 					Protocol: corev1.ProtocolTCP,
-					Port:     *int32Ptr(int32(dsv1alpha1.DsAlertPort)),
+					Port:     *int32Ptr(int32(dsv1alpha1.DsApiPort)),
 					TargetPort: intstr.IntOrString{
-						IntVal: dsv1alpha1.DsAlertPort,
+						IntVal: dsv1alpha1.DsApiPort,
 					},
+					NodePort: cluster.Spec.NodePort,
 				},
 			},
 		},
@@ -47,28 +49,28 @@ func createAlertService(cluster *dsv1alpha1.DSAlert) *corev1.Service {
 	return &service
 }
 
-func createAlertDeployment(cluster *dsv1alpha1.DSAlert) *v1.Deployment {
-	alertDeployment := v1.Deployment{
+func createApiDeployment(cluster *dsv1alpha1.DSApi) *v1.Deployment {
+	ApiDeployment := v1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      dsv1alpha1.DsAlertDeploymentValue,
+			Name:      dsv1alpha1.DsApiDeploymentValue,
 			Namespace: cluster.Namespace,
 		},
 		Spec: v1.DeploymentSpec{
 			Replicas: int32Ptr(int32(cluster.Spec.Replicas)),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					dsv1alpha1.DsAppName: dsv1alpha1.DsAlert,
+					dsv1alpha1.DsAppName: dsv1alpha1.DsApi,
 				},
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						dsv1alpha1.DsAppName: dsv1alpha1.DsAlert,
+						dsv1alpha1.DsAppName: dsv1alpha1.DsApi,
 					},
 				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{
-						Name:            dsv1alpha1.DsAlert,
+						Name:            dsv1alpha1.DsApi,
 						Image:           ImageName(cluster.Spec.Repository, cluster.Spec.Version),
 						ImagePullPolicy: corev1.PullIfNotPresent,
 						Env: []corev1.EnvVar{
@@ -90,7 +92,7 @@ func createAlertDeployment(cluster *dsv1alpha1.DSAlert) *v1.Deployment {
 							},
 						},
 						Ports: []corev1.ContainerPort{{
-							ContainerPort: dsv1alpha1.DsAlertPort,
+							ContainerPort: dsv1alpha1.DsApiPort,
 						},
 						},
 					},
@@ -99,9 +101,5 @@ func createAlertDeployment(cluster *dsv1alpha1.DSAlert) *v1.Deployment {
 			},
 		},
 	}
-	return &alertDeployment
-}
-
-func int32Ptr(i int32) *int32 {
-	return &i
+	return &ApiDeployment
 }

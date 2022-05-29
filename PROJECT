@@ -31,4 +31,13 @@ resources:
   kind: DSAlert
   path: dolphinscheduler-operator/api/v1alpha1
   version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: apache.dolphinscheduler.dev
+  group: ds
+  kind: DSApi
+  path: dolphinscheduler-operator/api/v1alpha1
+  version: v1alpha1
 version: "3"
