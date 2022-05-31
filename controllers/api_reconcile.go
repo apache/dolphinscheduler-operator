@@ -56,7 +56,7 @@ func createApiDeployment(cluster *dsv1alpha1.DSApi) *v1.Deployment {
 			Namespace: cluster.Namespace,
 		},
 		Spec: v1.DeploymentSpec{
-			Replicas: int32Ptr(int32(cluster.Spec.Replicas)),
+			Replicas: int32Ptr(cluster.Spec.Replicas),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					dsv1alpha1.DsAppName: dsv1alpha1.DsApi,
@@ -74,6 +74,10 @@ func createApiDeployment(cluster *dsv1alpha1.DSApi) *v1.Deployment {
 						Image:           ImageName(cluster.Spec.Repository, cluster.Spec.Version),
 						ImagePullPolicy: corev1.PullIfNotPresent,
 						Env: []corev1.EnvVar{
+							{
+								Name:  dsv1alpha1.EnvZookeeper,
+								Value: cluster.Spec.ZookeeperConnect,
+							},
 							{
 								Name:  dsv1alpha1.DataSourceDriveName,
 								Value: cluster.Spec.Datasource.DriveName,

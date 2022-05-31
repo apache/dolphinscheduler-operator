@@ -67,8 +67,6 @@ type DsCondition struct {
 // PodPolicy defines the policy to create pod for the dm-master container.
 type PodPolicy struct {
 	// Labels specifies the labels to attach to pods the operator creates for the
-	// dm-master cluster.
-	// "app" and "dm-master_*" labels are reserved for the internal use of the dm-master operator.
 	// Do not overwrite them.
 	Labels map[string]string `json:"labels,omitempty"`
 
@@ -77,39 +75,38 @@ type PodPolicy struct {
 	// labels.
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 
-	// The scheduling constraints on dm-master pods.
 	Affinity *corev1.Affinity `json:"affinity,omitempty"`
-	// **DEPRECATED**. Use Affinity instead.
-	AntiAffinity bool `json:"antiAffinity,omitempty"`
 
-	// Resources is the resource requirements for the dm-master container.
+	// Resources is the resource requirements for the  container.
 	// This field cannot be updated once the cluster is created.
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
 
 	// Tolerations specifies the pod's tolerations.
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 
-	// List of environment variables to set in the dm-master container.
-	// This is used to configure dm-master process. dm-master cluster cannot be created, when
+	// List of environment variables to set in the  container.
+	// This is used to configure process. cluster cannot be created, when
 	// bad environement variables are provided. Do not overwrite any flags used to
 	// bootstrap the cluster (for example `--initial-cluster` flag).
 	// This field cannot be updated.
-	Envs []corev1.EnvVar `json:"dm-masterEnv,omitempty"`
+	Envs []corev1.EnvVar `json:"envs,omitempty"`
 
-	// PersistentVolumeClaimSpec is the spec to describe PVC for the dm-master container
-	// This field is optional. If no PVC spec, dm-master container will use emptyDir as volume
-	// Note. This feature is in alpha stage. It is currently only used as non-stable storage,
-	// not the stable storage. Future work need to make it used as stable storage.
-	PersistentVolumeClaimSpec *corev1.PersistentVolumeClaimSpec `json:"persistentVolumeClaimSpec,omitempty"`
-
-	// Annotations specifies the annotations to attach to pods the operator creates for the
-	// dm-master cluster.
-	// The "dm-master.version" annotation is reserved for the internal use of the dm-master operator.
+	// Annotations specifies the annotations to attach to pods the operator creates for the cluster.
 	Annotations map[string]string `json:"annotations,omitempty"`
 
 	// SecurityContext specifies the security context for the entire pod
 	// More info: https://kubernetes.io/docs/tasks/configure-pod-container/security-context
 	SecurityContext *corev1.PodSecurityContext `json:"securityContext,omitempty"`
+}
+
+type DeploymentPolicy struct {
+	Labels      map[string]string           `json:"labels,omitempty"`
+	Annotations map[string]string           `json:"annotations,omitempty"`
+	Envs        []corev1.EnvVar             `json:"envs,omitempty"`
+	Resources   corev1.ResourceRequirements `json:"resources,omitempty"`
+	Affinity    *corev1.Affinity            `json:"affinity,omitempty"`
+	// Tolerations specifies the pod's tolerations.
+	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 }
 
 type MembersStatus struct {

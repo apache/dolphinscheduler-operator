@@ -49,11 +49,11 @@ type DSAlertSpec struct {
 	// +kubebuilder:default=3
 	// +kubebuilder:validation:Minimum=1
 	// +kubebuilder:validation:Maximum=7
-	Replicas int `json:"replicas"`
+	Replicas int32 `json:"replicas"`
 
 	// Pod defines the policy to create pod for the dm-master pod.
 	// Updating Pod does not take effect on any existing dm-master pods.
-	Pod *PodPolicy `json:"pod,omitempty"`
+	Deployment *DeploymentPolicy `json:"deployment,omitempty"`
 
 	// Paused is to pause the control of the operator for the ds-master .
 	// +kubebuilder:default=false
@@ -61,10 +61,6 @@ type DSAlertSpec struct {
 
 	//LogPvcName defines the  log capacity of application ,the position is /opt/dolphinscheduler/logs eg 20Gi
 	LogPvcName string `json:"log_pvc_name,omitempty"`
-
-	//ReGenerate defines if delete the old_deployment and create a new deployment
-	// +kubebuilder:default=false
-	ReGenerate bool `json:"re_generate,omitempty"`
 }
 
 // DSAlertStatus defines the observed state of DSAlert
@@ -86,9 +82,6 @@ type DSAlertStatus struct {
 	// Replicas is the current size of the cluster
 	// +kubebuilder:default=0
 	Replicas int `json:"replicas,omitempty"`
-
-	// Members are the dsMaster members in the cluster
-	Members MembersStatus `json:"members,omitempty"`
 }
 
 //+kubebuilder:object:root=true

@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	dsv1alpha1 "dolphinscheduler-operator/api/v1alpha1"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -8,6 +9,34 @@ import (
 // IsDeploymentAvailable returns true if a pod is ready; false otherwise.
 func IsDeploymentAvailable(deployment *v1.Deployment) bool {
 	return IsDeploymentAvailableConditionTrue(deployment.Status)
+}
+
+func applyDeploymentPolicy(deployment *v1.Deployment, policy *dsv1alpha1.DeploymentPolicy) {
+	if policy == nil {
+		return
+	}
+
+	if policy.Affinity != nil {
+		deployment.Spec.Template.Spec.Affinity = policy.Affinity
+	}
+
+	if len(policy.Tolerations) != 0 {
+		deployment.Spec.Template.Spec.Tolerations = policy.Tolerations
+	}
+
+	mergeLabels(deployment.Labels, policy.Labels)
+
+	if &policy.Resources != nil {
+		deployment.Spec.Template.Spec.Containers[0] = containerWithRequirements(deployment.Spec.Template.Spec.Containers[0], policy.Resources)
+	}
+
+	if len(policy.Envs) != 0 {
+		deployment.Spec.Template.Spec.Containers[0].Env = append(deployment.Spec.Template.Spec.Containers[0].Env, policy.Envs...)
+	}
+
+	for key, value := range policy.Annotations {
+		deployment.ObjectMeta.Annotations[key] = value
+	}
 }
 
 // IsDeploymentAvailableConditionTrue returns true if a deployment is available; false otherwise.

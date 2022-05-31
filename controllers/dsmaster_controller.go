@@ -99,7 +99,6 @@ func (r *DSMasterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 	} else {
 		// The object is being deleted
-
 		if controllerutil.ContainsFinalizer(desired, dsv1alpha1.FinalizerName) {
 			// our finalizer is present, so lets handle any external dependency
 			if err := r.ensureDSMasterDeleted(ctx, cluster); err != nil {
@@ -117,7 +116,7 @@ func (r *DSMasterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	// If dsmaster-cluster is paused, we do nothing on things changed.
-	// Until dsmaster-cluster is un-paused, we will reconcile to the the state of that point.
+	// Until dsmaster-cluster is un-paused, we will reconcile to the  state of that point.
 	if cluster.Spec.Paused {
 		logger.Info("ds-master control has been paused: ", "ds-master-name", cluster.Name)
 		desired.Status.ControlPaused = true
@@ -257,17 +256,14 @@ func (r *DSMasterReconciler) createMember(ctx context.Context, cluster *dsv1alph
 }
 
 func (r *DSMasterReconciler) deletePod(ctx context.Context, pod *corev1.Pod) error {
-
 	logger.Info("begin delete pod", "pod name", pod.Name)
 	if err := r.Client.Delete(ctx, pod); err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}
-
 	return nil
 }
 
 func (r *DSMasterReconciler) ensureUpgraded(ctx context.Context, cluster *dsv1alpha1.DSMaster) (bool, error) {
-
 	ms, err := r.podMemberSet(ctx, cluster)
 	if err != nil {
 		return false, err
@@ -275,7 +271,7 @@ func (r *DSMasterReconciler) ensureUpgraded(ctx context.Context, cluster *dsv1al
 
 	logger.Info("cluster.Spec.Version", "cluster.Spec.Version", cluster.Spec.Version)
 	for _, memset := range ms {
-		if memset.Version != cluster.Spec.Version {
+		if r.predicateUpdate(memset, cluster) {
 			pod := &corev1.Pod{}
 			pod.SetName(memset.Name)
 			pod.SetNamespace(memset.Namespace)
@@ -312,19 +308,15 @@ func (r *DSMasterReconciler) ensureMasterService(ctx context.Context, cluster *d
 	namespacedName := types.NamespacedName{Namespace: cluster.Namespace, Name: dsv1alpha1.DsServiceLabelValue}
 	if err := r.Client.Get(ctx, namespacedName, service); err != nil {
 		// Local cache not found
-		logger.Info("get service error")
 		if apierrors.IsNotFound(err) {
 			service = createMasterService(cluster)
 			if err := controllerutil.SetControllerReference(cluster, service, r.Scheme); err != nil {
-				logger.Info("create service error")
 				return err
 			}
 			// Remote may already exist, so we will return err, for the next time, this code will not execute
 			if err := r.Client.Create(ctx, service); err != nil {
-				logger.Info("create service error1")
 				return err
 			}
-			logger.Info("the headless service had been created")
 		}
 	}
 	return nil
@@ -348,15 +340,7 @@ func (r *Predicate) Update(evt event.UpdateEvent) bool {
 		oldC := evt.ObjectOld.(*dsv1alpha1.DSMaster)
 		newC := evt.ObjectNew.(*dsv1alpha1.DSMaster)
 
-		logger.V(5).Info("Running update filter",
-			"Old size", oldC.Spec.Replicas,
-			"New size", newC.Spec.Replicas,
-			"old paused", oldC.Spec.Paused,
-			"new paused", newC.Spec.Paused,
-			"old object deletion", !oldC.ObjectMeta.DeletionTimestamp.IsZero(),
-			"new object deletion", !newC.ObjectMeta.DeletionTimestamp.IsZero())
-
-		// Only care about size, version and paused fields
+		// Only care about size, repo,version and paused fields
 		if oldC.Spec.Replicas != newC.Spec.Replicas {
 			return true
 		}
@@ -369,7 +353,11 @@ func (r *Predicate) Update(evt event.UpdateEvent) bool {
 			return true
 		}
 
-		// If cluster has been marked as deleted, check if we have remove our finalizer
+		if oldC.Spec.Repository != newC.Spec.Repository {
+			return true
+		}
+
+		// If cluster has been marked as deleted, check if we have removed our finalizer
 		// If it has our finalizer, indicating our cleaning up works has not been done.
 		if oldC.DeletionTimestamp.IsZero() && !newC.DeletionTimestamp.IsZero() {
 			if controllerutil.ContainsFinalizer(newC, dsv1alpha1.FinalizerName) {
@@ -398,4 +386,8 @@ func (r *Predicate) Generic(evt event.GenericEvent) bool {
 		return true
 	}
 	return false
+}
+
+func (r *DSMasterReconciler) predicateUpdate(member *Member, cluster *dsv1alpha1.DSMaster) bool {
+	return member.Version != cluster.Spec.Version
 }

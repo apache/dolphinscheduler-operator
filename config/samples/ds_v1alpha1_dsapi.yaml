@@ -8,8 +8,9 @@ metadata:
 spec:
   replicas: 1
   version: 3.0.0-alpha
+  zookeeper_connect: "172.17.0.5:2181"
   repository: apache/dolphinscheduler-api
-  node_port:30002
+  node_port: 30002
   datasource:
     drive_name: "org.postgresql.Driver"
     url: "jdbc:postgresql://172.17.0.4:5432/dolphinscheduler"

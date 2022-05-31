@@ -120,13 +120,6 @@ func init() {
 	SchemeBuilder.Register(&DSWorker{}, &DSWorkerList{})
 }
 
-func (c *DSWorker) IsPodPVEnabled() bool {
-	if podPolicy := c.Spec.Pod; podPolicy != nil {
-		return podPolicy.PersistentVolumeClaimSpec != nil
-	}
-	return false
-}
-
 type AlertConfig struct {
 	ServiceUrl string `json:"service_url,omitempty"`
 	Port       string `json:"port,omitempty"`

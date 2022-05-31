@@ -125,14 +125,15 @@ func (r *DSAlertReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	alertLogger.Info("Ensuring alert service")
 
 	if err := r.ensureAlertService(ctx, cluster); err != nil {
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{Requeue: false}, nil
 	}
 
+	alertLogger.Info("Ensuring alert Deployment")
 	if requeue, err := r.ensureAlertDeployment(ctx, cluster); err != nil {
 		return ctrl.Result{Requeue: false}, err
 	} else {
-		if !requeue {
-			return ctrl.Result{Requeue: false}, nil
+		if requeue {
+			return ctrl.Result{RequeueAfter: 3 * time.Second}, nil
 		}
 	}
 
@@ -150,7 +151,6 @@ func (r *DSAlertReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&dsv1alpha1.DSAlert{}).
 		Owns(&v1.Deployment{}).
 		Owns(&corev1.Service{}).
-		Owns(&corev1.Pod{}).
 		Complete(r)
 }
 
@@ -171,15 +171,15 @@ func (r *DSAlertReconciler) ensureAlertService(ctx context.Context, cluster *dsv
 		if apierrors.IsNotFound(err) {
 			service = createAlertService(cluster)
 			if err := controllerutil.SetControllerReference(cluster, service, r.Scheme); err != nil {
-				logger.Info("create alert service error")
+				alertLogger.Info("create alert service error")
 				return err
 			}
 			// Remote may already exist, so we will return err, for the next time, this code will not execute
 			if err := r.Client.Create(ctx, service); err != nil {
-				logger.Info("create alert service error1")
+				alertLogger.Info("create alert service error1")
 				return err
 			}
-			logger.Info("the alert service had been created")
+			alertLogger.Info("the alert service had been created")
 		}
 	}
 	return nil
@@ -191,31 +191,51 @@ func (r *DSAlertReconciler) ensureAlertDeployment(ctx context.Context, cluster *
 	if err := r.Client.Get(ctx, deploymentNamespaceName, deployment); err != nil {
 		if apierrors.IsNotFound(err) {
 			deployment = createAlertDeployment(cluster)
+			applyDeploymentPolicy(deployment, cluster.Spec.Deployment)
 		}
 		if err := controllerutil.SetControllerReference(cluster, deployment, r.Scheme); err != nil {
-			return true, err
-		}
-		if err := r.Client.Create(ctx, deployment); err == nil {
-			return false, nil
-		} else {
-			return true, err
-		}
-	} else {
-		err := r.updateAlertDeployment(ctx, deployment, cluster)
-		if err != nil {
 			return false, err
 		}
+		if err := r.Client.Create(ctx, deployment); err == nil {
+			alertLogger.Info("the alert deployment had been created")
+			return false, nil
+		} else {
+			return false, err
+		}
+	} else {
+		if r.predicateUpdate(deployment, cluster) {
+			alertLogger.Info("alert need to update")
+			err := r.updateAlertDeployment(ctx, deployment, cluster)
+			if err != nil {
+				return false, err
+			}
+			return true, nil
+		} else {
+			alertLogger.Info("begin to check alert deployment ")
+			if IsDeploymentAvailable(deployment) {
+				alertLogger.Info("deployment  is available ")
+				return false, nil
+			} else {
+				return true, nil
+			}
+		}
 	}
-
-	return true, nil
 }
 
-//only notice the property of replicas  and image and version
 func (r *DSAlertReconciler) updateAlertDeployment(ctx context.Context, deployment *v1.Deployment, cluster *dsv1alpha1.DSAlert) error {
-	deployment.Spec.Replicas = int32Ptr(int32(cluster.Spec.Replicas))
+	deployment.Spec.Replicas = int32Ptr(cluster.Spec.Replicas)
 	deployment.Spec.Template.Spec.Containers[0].Image = ImageName(cluster.Spec.Repository, cluster.Spec.Version)
 	if err := r.Client.Update(ctx, deployment); err != nil {
 		return err
 	}
 	return nil
+}
+
+//only notice the property of replicas  and image and version
+func (r *DSAlertReconciler) predicateUpdate(deployment *v1.Deployment, cluster *dsv1alpha1.DSAlert) bool {
+	if *deployment.Spec.Replicas == (cluster.Spec.Replicas) && deployment.Spec.Template.Spec.Containers[0].Image == ImageName(cluster.Spec.Repository, cluster.Spec.Version) {
+		alertLogger.Info("no need update")
+		return false
+	}
+	return true
 }

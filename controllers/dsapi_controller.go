@@ -125,14 +125,14 @@ func (r *DSApiReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	apiLogger.Info("Ensuring Api service")
 
 	if err := r.ensureApiService(ctx, cluster); err != nil {
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{Requeue: false}, nil
 	}
 
 	if requeue, err := r.ensureApiDeployment(ctx, cluster); err != nil {
 		return ctrl.Result{Requeue: false}, err
 	} else {
-		if !requeue {
-			return ctrl.Result{Requeue: false}, nil
+		if requeue {
+			return ctrl.Result{RequeueAfter: 3 * time.Second}, nil
 		}
 	}
 
@@ -150,7 +150,6 @@ func (r *DSApiReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&dsv1alpha1.DSApi{}).
 		Owns(&v1.Deployment{}).
 		Owns(&corev1.Service{}).
-		Owns(&corev1.Pod{}).
 		Complete(r)
 }
 
@@ -167,19 +166,19 @@ func (r *DSApiReconciler) ensureApiService(ctx context.Context, cluster *dsv1alp
 	namespacedName := types.NamespacedName{Namespace: cluster.Namespace, Name: dsv1alpha1.DsApiServiceValue}
 	if err := r.Client.Get(ctx, namespacedName, service); err != nil {
 		// Local cache not found
-		logger.Info("get service error")
+		apiLogger.Info("api  get service error")
 		if apierrors.IsNotFound(err) {
 			service = createApiService(cluster)
 			if err := controllerutil.SetControllerReference(cluster, service, r.Scheme); err != nil {
-				logger.Info("create Api service error")
+				apiLogger.Info("create Api service error")
 				return err
 			}
 			// Remote may already exist, so we will return err, for the next time, this code will not execute
 			if err := r.Client.Create(ctx, service); err != nil {
-				logger.Info("create Api service error1")
+				apiLogger.Info("create Api service error1")
 				return err
 			}
-			logger.Info("the Api service had been created")
+			apiLogger.Info("the Api service had been created")
 		}
 	}
 	return nil
@@ -191,31 +190,51 @@ func (r *DSApiReconciler) ensureApiDeployment(ctx context.Context, cluster *dsv1
 	if err := r.Client.Get(ctx, deploymentNamespaceName, deployment); err != nil {
 		if apierrors.IsNotFound(err) {
 			deployment = createApiDeployment(cluster)
+			applyDeploymentPolicy(deployment, cluster.Spec.Deployment)
 		}
 		if err := controllerutil.SetControllerReference(cluster, deployment, r.Scheme); err != nil {
-			return true, err
-		}
-		if err := r.Client.Create(ctx, deployment); err == nil {
-			return false, nil
-		} else {
-			return true, err
-		}
-	} else {
-		err := r.updateApiDeployment(ctx, deployment, cluster)
-		if err != nil {
 			return false, err
 		}
+		if err := r.Client.Create(ctx, deployment); err == nil {
+			apiLogger.Info("the api deployment had been created")
+			return false, nil
+		} else {
+			return false, err
+		}
+	} else {
+		if r.predicateUpdate(deployment, cluster) {
+			apiLogger.Info("api need to update")
+			err := r.updateApiDeployment(ctx, deployment, cluster)
+			if err != nil {
+				return false, err
+			}
+			return true, nil
+		} else {
+			apiLogger.Info("begin to check deployment ")
+			if IsDeploymentAvailable(deployment) {
+				apiLogger.Info("api deployment  is available ")
+				return false, nil
+			} else {
+				return true, nil
+			}
+		}
 	}
-
-	return true, nil
 }
 
 //only notice the property of replicas  and image and version
 func (r *DSApiReconciler) updateApiDeployment(ctx context.Context, deployment *v1.Deployment, cluster *dsv1alpha1.DSApi) error {
-	deployment.Spec.Replicas = int32Ptr(int32(cluster.Spec.Replicas))
+	deployment.Spec.Replicas = int32Ptr(cluster.Spec.Replicas)
 	deployment.Spec.Template.Spec.Containers[0].Image = ImageName(cluster.Spec.Repository, cluster.Spec.Version)
 	if err := r.Client.Update(ctx, deployment); err != nil {
 		return err
 	}
 	return nil
+}
+
+func (r *DSApiReconciler) predicateUpdate(deployment *v1.Deployment, cluster *dsv1alpha1.DSApi) bool {
+	if *deployment.Spec.Replicas == (cluster.Spec.Replicas) && deployment.Spec.Template.Spec.Containers[0].Image == ImageName(cluster.Spec.Repository, cluster.Spec.Version) {
+		apiLogger.Info("no need update")
+		return false
+	}
+	return true
 }
