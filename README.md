@@ -52,13 +52,20 @@
     
  ## how to test
  
+ * replace the database config and zookeeper config paramters in config/samples/*.yaml
+ 
  * in current project  run *"make build&&make manifests && make install && make run"* 
 
- * cd to config/ds
+ * cd to config/ds/samples
 
  * first run *"kubectl apply -f ds_v1alpha1_dsalert.yaml "*
 
  * then run  *"kubectl apply -f ds_v1alpha1_api.yaml -f ds_v1alpha1_dsmaster.yaml -f ds_v1alpha1_dsworker.yaml "*
+ 
+ ## the result
+ 
+ ![image](https://user-images.githubusercontent.com/7134124/171322789-86adfaac-57ad-4e8e-b092-8704b84d20c3.png)
+
 
 
      
