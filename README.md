@@ -8,7 +8,7 @@
 
 ## Project Status
 
-**Project status:** *alpha1*
+**Project status:** *'alpha1'*
 
 **Current API version:** *`v1alpha1`*
 
@@ -34,6 +34,7 @@
     record the deployment ip  eg: 172.17.0.3
 
 ![image](https://user-images.githubusercontent.com/7134124/170439546-87cce0df-6cb4-4ab1-bb01-9200309efe45.png)
+
 
 3. **install  zookeeper(not required)**
 
