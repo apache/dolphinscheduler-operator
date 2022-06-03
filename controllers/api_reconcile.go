@@ -32,7 +32,7 @@ func createApiService(cluster *dsv1alpha1.DSApi) *corev1.Service {
 			Labels:    map[string]string{dsv1alpha1.DsAppName: dsv1alpha1.DsApiServiceValue},
 		},
 		Spec: corev1.ServiceSpec{
-			Type:     corev1.ServiceTypeNodePort,
+			Type:     corev1.ServiceTypeLoadBalancer,
 			Selector: map[string]string{dsv1alpha1.DsAppName: dsv1alpha1.DsApi},
 			Ports: []corev1.ServicePort{
 				{
@@ -41,10 +41,14 @@ func createApiService(cluster *dsv1alpha1.DSApi) *corev1.Service {
 					TargetPort: intstr.IntOrString{
 						IntVal: dsv1alpha1.DsApiPort,
 					},
-					NodePort: cluster.Spec.NodePort,
 				},
 			},
 		},
+	}
+	if cluster.Spec.NodePort > 0 {
+		apiLogger.Info("the nodePort is not nil", "nodePort", cluster.Spec.NodePort)
+		service.Spec.Type = corev1.ServiceTypeNodePort
+		service.Spec.Ports[0].NodePort = cluster.Spec.NodePort
 	}
 	return &service
 }

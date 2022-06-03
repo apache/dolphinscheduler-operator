@@ -1111,8 +1111,8 @@ spec:
                   position is /opt/dolphinscheduler/logs eg 20Gi
                 type: string
               node_port:
-                default: 30001
-                description: NodePort is the port node exposed
+                description: NodePort is the port node exposed if no nodePort it will
+                  be lb type
                 format: int32
                 type: integer
               paused:
@@ -1145,7 +1145,6 @@ spec:
                 type: string
             required:
             - datasource
-            - node_port
             - replicas
             type: object
           status:

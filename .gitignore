@@ -42,3 +42,4 @@ testbin/*
 
 /vendor/
 /dolphinscheduler-operator.iml
+/config/test/

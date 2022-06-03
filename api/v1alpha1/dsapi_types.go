@@ -64,9 +64,8 @@ type DSApiSpec struct {
 	//LogPvcName defines the  log capacity of application ,the position is /opt/dolphinscheduler/logs eg 20Gi
 	LogPvcName string `json:"log_pvc_name,omitempty"`
 
-	//NodePort is the port node exposed
-	// +kubebuilder:default=30001
-	NodePort int32 `json:"node_port"`
+	//NodePort is the port node exposed if no nodePort it will be lb type
+	NodePort int32 `json:"node_port,omitempty"`
 }
 
 // DSApiStatus defines the observed state of DSApi

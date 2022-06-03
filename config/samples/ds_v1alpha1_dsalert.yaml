@@ -11,6 +11,6 @@ spec:
   repository: apache/dolphinscheduler-alert-server
   datasource:
     drive_name: "org.postgresql.Driver"
-    url: "jdbc:postgresql://172.17.0.4:5432/dolphinscheduler"
+    url: "jdbc:postgresql://172.31.24.57:5432/dolphinscheduler"
     username: "postgresadmin"
     password: "admin12345"
