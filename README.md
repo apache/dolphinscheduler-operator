@@ -8,7 +8,7 @@
 
 ## Project Status
 
-**Project status:** *alpha1*
+**Project status:** *'alpha1'*
 
 **Current API version:** *`v1alpha1`*
 
@@ -23,7 +23,10 @@
 **kubectl version:** *1.23.1*
 
 ## Get Started
+
 1. **create  namespace ds**
+
+    kubectl create namespace ds
 
 2. **install  postgres (not required)**
 
@@ -35,12 +38,13 @@
 
 ![image](https://user-images.githubusercontent.com/7134124/170439546-87cce0df-6cb4-4ab1-bb01-9200309efe45.png)
 
+
 3. **install  zookeeper(not required)**
 
     if had no zookeeper ,the doployment file is in config/ds/zookeeper ,run *"kubectl apply -f zookeeper/"* and record the ip ,eg :172.17.0.4
 
     
-4 **create pv and pvc (not required)**    
+4. **create pv and pvc (not required)**    
    
     if you had pv and pvc ,you can config it in config/sameples 
     
@@ -52,13 +56,22 @@
     
  ## how to test
  
+ * replace the database config and zookeeper config paramters in config/samples/*.yaml
+
+ * replace the nodeport in *config/samples/ds_v1alpha1_api.yaml*
+ 
  * in current project  run *"make build&&make manifests && make install && make run"* 
 
- * cd to config/ds
+ * cd to config/ds/samples
 
  * first run *"kubectl apply -f ds_v1alpha1_dsalert.yaml "*
 
  * then run  *"kubectl apply -f ds_v1alpha1_api.yaml -f ds_v1alpha1_dsmaster.yaml -f ds_v1alpha1_dsworker.yaml "*
+ 
+ ## the result
+ 
+ ![image](https://user-images.githubusercontent.com/7134124/171322789-86adfaac-57ad-4e8e-b092-8704b84d20c3.png)
+
 
 
      
