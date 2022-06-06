@@ -20,16 +20,22 @@ const (
 	DsConditionScaling                   = "Scaling"
 	DsConditionUpgrading                 = "Upgrading"
 
-	ClusterMembersAnnotation      = "github.com/nobolity/members"
-	ClusterUpgradeAnnotation      = "github.com/nobolity/upgrade"
-	ClusterBootStrappedAnnotation = "github.com/nobolity/bootstrapped"
-
 	DsAppName              = "app"
+	APIVersion             = "ds.apache.dolphinscheduler.dev/v1alpha1"
 	DsVersionLabel         = "ds-version"
+	DsLogVolumeName        = "ds-log"
+	DsLogVolumeMountDir    = "/opt/dolphinscheduler/logs"
+	DsShareVolumeName      = "ds-soft"
+	DsShareVolumeMountDir  = "/opt/soft"
+	DSVersion              = "v1alpha1"
 	FinalizerName          = "github.com.nobolity.dolphinscheduler-operator"
 	EnvZookeeper           = "REGISTRY_ZOOKEEPER_CONNECT_STRING"
 	DsServiceLabel         = "service-name"
 	DsServiceLabelValue    = "ds-service"
+	DsMasterLabel          = "ds-master"
+	DsHeadLessServiceLabel = "ds-operator-service"
+	DsWorkerLabel          = "ds-worker"
+	DsWorkerKind           = "DSWorker"
 	DsAlert                = "ds-alert"
 	DsAlertServiceValue    = "ds-alert-service"
 	DsAlertDeploymentValue = "ds-alert-deployment"
@@ -42,6 +48,7 @@ const (
 	DataSourcePassWord     = "SPRING_DATASOURCE_PASSWORD"
 	DsApiPort              = 12345
 	DsAlertPort            = 50052
+	DsWorkerHpa            = "ds-worker-hpa"
 )
 
 // DsCondition represents one current condition of a ds cluster.
@@ -107,6 +114,13 @@ type DeploymentPolicy struct {
 	Affinity    *corev1.Affinity            `json:"affinity,omitempty"`
 	// Tolerations specifies the pod's tolerations.
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
+}
+
+type HpaPolicy struct {
+	MinReplicas           int32 `json:"min_replicas,omitempty"`
+	MaxReplicas           int32 `json:"max_replicas,omitempty"`
+	CPUAverageUtilization int32 `json:"cpu_average_utilization,omitempty"`
+	MEMAverageUtilization int32 `json:"mem_average_utilization,omitempty"`
 }
 
 type MembersStatus struct {

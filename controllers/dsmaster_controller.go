@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	v2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -40,13 +41,8 @@ import (
 	dsv1alpha1 "dolphinscheduler-operator/api/v1alpha1"
 )
 
-const (
-	dsMasterLabel  = "ds-master"
-	dsServiceLabel = "ds-operator-service"
-)
-
 var (
-	logger = ctrl.Log.WithName("DSMaster-controller")
+	masterLogger = ctrl.Log.WithName("DSMaster-controller")
 )
 
 // DSMasterReconciler reconciles a DSMaster object
@@ -71,8 +67,8 @@ type DSMasterReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
 func (r *DSMasterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	logger.Info("dmMaster start reconcile logic")
-	defer logger.Info("dmMaster Reconcile end ---------------------------------------------")
+	masterLogger.Info("dmMaster start reconcile logic")
+	defer masterLogger.Info("dmMaster Reconcile end ---------------------------------------------")
 
 	cluster := &dsv1alpha1.DSMaster{}
 
@@ -118,7 +114,7 @@ func (r *DSMasterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	// If dsmaster-cluster is paused, we do nothing on things changed.
 	// Until dsmaster-cluster is un-paused, we will reconcile to the  state of that point.
 	if cluster.Spec.Paused {
-		logger.Info("ds-master control has been paused: ", "ds-master-name", cluster.Name)
+		masterLogger.Info("ds-master control has been paused: ", "ds-master-name", cluster.Name)
 		desired.Status.ControlPaused = true
 		if err := r.Status().Patch(ctx, desired, client.MergeFrom(cluster)); err != nil {
 			return ctrl.Result{}, err
@@ -130,32 +126,39 @@ func (r *DSMasterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	// 1. First time we see the ds-master-cluster, initialize it
 	if cluster.Status.Phase == dsv1alpha1.DsPhaseNone {
 		desired.Status.Phase = dsv1alpha1.DsPhaseCreating
-		logger.Info("phase had been changed from  none ---> creating")
+		masterLogger.Info("phase had been changed from  none ---> creating")
 		err := r.Client.Status().Patch(ctx, desired, client.MergeFrom(cluster))
 		return ctrl.Result{RequeueAfter: 100 * time.Millisecond}, err
 	}
 
 	//2 ensure the headless service
-	logger.Info("Ensuring cluster service")
+	masterLogger.Info("Ensuring cluster service")
 
 	if err := r.ensureMasterService(ctx, cluster); err != nil {
 		return ctrl.Result{}, err
 	}
 
-	// 3. Ensure bootstrapped, we will block here util cluster is up and healthy
-	logger.Info("Ensuring cluster members")
+	//2 ensure the headless service
+	masterLogger.Info("Ensuring worker hpa")
+
+	if err := r.ensureHPA(ctx, cluster); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// 4. Ensure bootstrapped, we will block here util cluster is up and healthy
+	masterLogger.Info("Ensuring cluster members")
 	if requeue, err := r.ensureMembers(ctx, cluster); requeue {
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, err
 	}
 
-	// 4. Ensure cluster scaled
-	logger.Info("Ensuring cluster scaled")
+	// 5. Ensure cluster scaled
+	masterLogger.Info("Ensuring cluster scaled")
 	if requeue, err := r.ensureScaled(ctx, cluster); requeue {
 		return ctrl.Result{Requeue: true, RequeueAfter: 5 * time.Second}, err
 	}
 
-	// .5 Ensure cluster upgraded
-	logger.Info("Ensuring cluster upgraded")
+	// 6. Ensure cluster upgraded
+	masterLogger.Info("Ensuring cluster upgraded")
 	if requeue, err := r.ensureUpgraded(ctx, cluster); requeue {
 		return ctrl.Result{Requeue: true}, err
 	}
@@ -165,7 +168,7 @@ func (r *DSMasterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, err
 	}
 
-	logger.Info("******************************************************")
+	masterLogger.Info("******************************************************")
 	desired.Status.Phase = dsv1alpha1.DsPhaseNone
 	if err := r.Update(ctx, desired); err != nil {
 		return ctrl.Result{}, err
@@ -184,6 +187,7 @@ func (r *DSMasterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&dsv1alpha1.DSMaster{}).
 		Owns(&corev1.Pod{}).
 		Owns(&corev1.Service{}).
+		Owns(&v2.HorizontalPodAutoscaler{}).
 		Watches(&source.Channel{Source: r.resyncCh}, &handler.EnqueueRequestForObject{}).
 		// or use WithEventFilter()
 		WithEventFilter(filter).
@@ -239,11 +243,11 @@ func (r *DSMasterReconciler) ensureScaled(ctx context.Context, cluster *dsv1alph
 }
 
 func (r *DSMasterReconciler) createMember(ctx context.Context, cluster *dsv1alpha1.DSMaster) error {
-	logger.Info("Starting add new member to cluster", "cluster", cluster.Name)
-	defer logger.Info("End add new member to cluster", "cluster", cluster.Name)
+	masterLogger.Info("Starting add new member to cluster", "cluster", cluster.Name)
+	defer masterLogger.Info("End add new member to cluster", "cluster", cluster.Name)
 
 	// New Pod
-	pod, err := r.newDSMasterPod(ctx, cluster)
+	pod, err := r.newDSMasterPod(cluster)
 	if err != nil {
 		return err
 	}
@@ -256,7 +260,7 @@ func (r *DSMasterReconciler) createMember(ctx context.Context, cluster *dsv1alph
 }
 
 func (r *DSMasterReconciler) deletePod(ctx context.Context, pod *corev1.Pod) error {
-	logger.Info("begin delete pod", "pod name", pod.Name)
+	masterLogger.Info("begin delete pod", "pod name", pod.Name)
 	if err := r.Client.Delete(ctx, pod); err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}
@@ -269,7 +273,7 @@ func (r *DSMasterReconciler) ensureUpgraded(ctx context.Context, cluster *dsv1al
 		return false, err
 	}
 
-	logger.Info("cluster.Spec.Version", "cluster.Spec.Version", cluster.Spec.Version)
+	masterLogger.Info("cluster.Spec.Version", "cluster.Spec.Version", cluster.Spec.Version)
 	for _, memset := range ms {
 		if r.predicateUpdate(memset, cluster) {
 			pod := &corev1.Pod{}
@@ -289,7 +293,7 @@ func getNeedUpgradePods(ctx context.Context, cli *kubernetes.Clientset, cluster 
 	if err != nil {
 		return nil, err
 	}
-	podAppSelect, err := labels.NewRequirement(dsv1alpha1.DsAppName, selection.Equals, []string{dsMasterLabel})
+	podAppSelect, err := labels.NewRequirement(dsv1alpha1.DsAppName, selection.Equals, []string{dsv1alpha1.DsMasterLabel})
 	if err != nil {
 		return nil, err
 	}
@@ -305,10 +309,10 @@ func (r *DSMasterReconciler) ensureMasterService(ctx context.Context, cluster *d
 
 	// 1. Client service
 	service := &corev1.Service{}
-	namespacedName := types.NamespacedName{Namespace: cluster.Namespace, Name: dsv1alpha1.DsServiceLabelValue}
+	namespacedName := types.NamespacedName{Namespace: cluster.Namespace, Name: dsv1alpha1.DsHeadLessServiceLabel}
 	if err := r.Client.Get(ctx, namespacedName, service); err != nil {
 		// Local cache not found
-		if apierrors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) && !apierrors.IsAlreadyExists(err) {
 			service = createMasterService(cluster)
 			if err := controllerutil.SetControllerReference(cluster, service, r.Scheme); err != nil {
 				return err
@@ -317,6 +321,8 @@ func (r *DSMasterReconciler) ensureMasterService(ctx context.Context, cluster *d
 			if err := r.Client.Create(ctx, service); err != nil {
 				return err
 			}
+
+			r.recorder.Event(cluster, corev1.EventTypeNormal, "ds-operator-service created", "master headless service had been created")
 		}
 	}
 	return nil
@@ -390,4 +396,32 @@ func (r *Predicate) Generic(evt event.GenericEvent) bool {
 
 func (r *DSMasterReconciler) predicateUpdate(member *Member, cluster *dsv1alpha1.DSMaster) bool {
 	return member.Version != cluster.Spec.Version
+}
+
+func (r *DSMasterReconciler) ensureHPA(ctx context.Context, cluster *dsv1alpha1.DSMaster) error {
+	hpa := &v2.HorizontalPodAutoscaler{}
+	namespacedName := types.NamespacedName{Namespace: cluster.Namespace, Name: dsv1alpha1.DsWorkerHpa}
+	if err := r.Client.Get(ctx, namespacedName, hpa); err != nil {
+		// Local cache not found
+		if apierrors.IsNotFound(err) && cluster.Spec.HpaPolicy != nil {
+			hpa := r.createHPA(cluster)
+			if err := controllerutil.SetControllerReference(cluster, hpa, r.Scheme); err != nil {
+				masterLogger.Info("set controller worker hpa error")
+				return err
+			}
+			// Remote may already exist, so we will return err, for the next time, this code will not execute
+			if err := r.Client.Create(ctx, hpa); err != nil {
+				masterLogger.Info("create worker hpa error")
+				return err
+			}
+		}
+	}
+
+	if &hpa != nil && cluster.Spec.HpaPolicy == nil {
+		if err := r.deleteHPA(ctx, hpa); err != nil {
+			masterLogger.Info("delete hpa error")
+			return err
+		}
+	}
+	return nil
 }

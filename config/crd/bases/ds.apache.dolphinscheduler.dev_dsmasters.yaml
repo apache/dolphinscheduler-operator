@@ -51,6 +51,21 @@ spec:
                 - url
                 - username
                 type: object
+              hpa:
+                properties:
+                  cpu_average_utilization:
+                    format: int32
+                    type: integer
+                  max_replicas:
+                    format: int32
+                    type: integer
+                  mem_average_utilization:
+                    format: int32
+                    type: integer
+                  min_replicas:
+                    format: int32
+                    type: integer
+                type: object
               log_pvc_name:
                 description: LogPvcName defines the  log capacity of application ,the
                   position is /opt/dolphinscheduler/logs eg 20Gi

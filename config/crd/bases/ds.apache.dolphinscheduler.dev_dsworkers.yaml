@@ -15,10 +15,22 @@ spec:
     singular: dsworker
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.replicas
+      name: replicas
+      type: integer
+    - jsonPath: .spec.repository
+      name: repository
+      type: string
+    - jsonPath: .spec.version
+      name: version
+      type: string
+    - jsonPath: .spec.controlPaused
+      name: controlPaused
+      type: boolean
+    name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: DSWorker is the Schema for the dsworkers API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -35,14 +47,6 @@ spec:
           spec:
             description: DSWorkerSpec defines the desired state of DSWorker
             properties:
-              alert_config:
-                description: AlertConfig is the config of alertService
-                properties:
-                  port:
-                    type: string
-                  service_url:
-                    type: string
-                type: object
               datasource:
                 description: Datasource is the config of database
                 properties:
@@ -1419,11 +1423,20 @@ spec:
                 default: 0
                 description: Replicas is the current size of the cluster
                 type: integer
+              selector:
+                description: Selector must be the string form of the selector
+                type: string
+            required:
+            - selector
             type: object
         type: object
     served: true
     storage: true
     subresources:
+      scale:
+        labelSelectorPath: .status.selector
+        specReplicasPath: .spec.replicas
+        statusReplicasPath: .status.replicas
       status: {}
 status:
   acceptedNames:

@@ -57,6 +57,8 @@ type DSMasterSpec struct {
 	// Updating Pod does not take effect on any existing dm-master pods.
 	Pod *PodPolicy `json:"pod,omitempty"`
 
+	HpaPolicy *HpaPolicy `json:"hpa,omitempty"`
+
 	// Paused is to pause the control of the operator for the ds-master .
 	// +kubebuilder:default=false
 	Paused bool `json:"paused,omitempty"`
@@ -89,7 +91,6 @@ type DSMasterStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-
 // DSMaster is the Schema for the dsmasters API
 type DSMaster struct {
 	metav1.TypeMeta   `json:",inline"`

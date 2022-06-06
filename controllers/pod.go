@@ -23,16 +23,6 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 )
 
-const (
-	dsLogVolumeName       = "ds-log"
-	dsLogVolumeMountDir   = "/opt/dolphinscheduler/logs"
-	dsShareVolumeName     = "ds-soft"
-	dsShareVolumeMountDir = "/opt/soft"
-)
-
-type PodTemplate struct {
-}
-
 func applyPodPolicy(pod *corev1.Pod, policy *dsv1alpha1.PodPolicy) {
 	if policy == nil {
 		return
@@ -53,6 +43,7 @@ func applyPodPolicy(pod *corev1.Pod, policy *dsv1alpha1.PodPolicy) {
 	mergeLabels(pod.Labels, policy.Labels)
 
 	if &policy.Resources != nil {
+		workerLogger.Info("the resources is ", "resources", policy.Resources)
 		pod.Spec.Containers[0] = containerWithRequirements(pod.Spec.Containers[0], policy.Resources)
 	}
 
@@ -79,6 +70,10 @@ func PodWithNodeSelector(p *corev1.Pod, ns map[string]string) *corev1.Pod {
 	return p
 }
 
+func LabelForWorkerPod() map[string]string {
+	return LabelsForCluster(dsv1alpha1.DsWorkerLabel)
+}
+
 func LabelsForCluster(lbs string) map[string]string {
 	return labels.Set{dsv1alpha1.DsAppName: lbs}
 }
@@ -89,11 +84,11 @@ func LabelsForService() map[string]string {
 
 // AddLogVolumeToPod abstract the process of appending volume spec to pod spec
 func AddLogVolumeToPod(pod *corev1.Pod, pvcName string) {
-	vol := corev1.Volume{Name: dsLogVolumeName}
+	vol := corev1.Volume{Name: dsv1alpha1.DsLogVolumeName}
 
 	vom := corev1.VolumeMount{
-		Name:      dsLogVolumeName,
-		MountPath: dsLogVolumeMountDir,
+		Name:      dsv1alpha1.DsLogVolumeName,
+		MountPath: dsv1alpha1.DsLogVolumeMountDir,
 		SubPath:   pod.Name,
 	}
 
@@ -112,11 +107,11 @@ func AddLogVolumeToPod(pod *corev1.Pod, pvcName string) {
 // AddLibVolumeToPod abstract the process of appending volume /opt/soft spec to pod spec,it is shared by all worker nodes,and it is read only
 // Suggest to mount a share volume in production env directly
 func AddLibVolumeToPod(pod *corev1.Pod, pvcName string) {
-	vol := corev1.Volume{Name: dsShareVolumeName}
+	vol := corev1.Volume{Name: dsv1alpha1.DsShareVolumeName}
 
 	vom := corev1.VolumeMount{
-		Name:      dsShareVolumeName,
-		MountPath: dsShareVolumeMountDir,
+		Name:      dsv1alpha1.DsShareVolumeName,
+		MountPath: dsv1alpha1.DsShareVolumeMountDir,
 		ReadOnly:  true,
 	}
 

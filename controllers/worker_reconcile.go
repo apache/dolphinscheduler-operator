@@ -19,12 +19,10 @@ package controllers
 import (
 	"context"
 	dsv1alpha1 "dolphinscheduler-operator/api/v1alpha1"
-	"errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"strings"
 )
 
 func (r *DSWorkerReconciler) podMemberSet(ctx context.Context, cluster *dsv1alpha1.DSWorker) (MemberSet, error) {
@@ -32,7 +30,7 @@ func (r *DSWorkerReconciler) podMemberSet(ctx context.Context, cluster *dsv1alph
 	pods := &corev1.PodList{}
 
 	if err := r.Client.List(ctx, pods, client.InNamespace(cluster.Namespace),
-		client.MatchingLabels(LabelsForCluster(dsWorkerLabel))); err != nil {
+		client.MatchingLabels(LabelsForCluster(dsv1alpha1.DsWorkerLabel))); err != nil {
 		return members, err
 	}
 
@@ -55,53 +53,13 @@ func (r *DSWorkerReconciler) podMemberSet(ctx context.Context, cluster *dsv1alph
 	return members, nil
 }
 
-func (r *DSWorkerReconciler) currentMemberSet(ctx context.Context, cluster *dsv1alpha1.DSWorker) (MemberSet, error) {
-	members := MemberSet{}
-
-	// Normally will not happen
-	ms, ok := cluster.Annotations[dsv1alpha1.ClusterMembersAnnotation]
-	if !ok || ms == "" {
-		return members, errors.New("cluster spec has no members annotation")
-	}
-
-	names := strings.Split(ms, ",")
-
-	pods := &corev1.PodList{}
-	if err := r.Client.List(ctx, pods, client.InNamespace(cluster.Namespace),
-		client.MatchingLabels(LabelsForCluster(dsWorkerLabel))); err != nil {
-		return members, err
-	}
-
-	podMaps := map[string]corev1.Pod{}
-	for _, pod := range pods.Items {
-		podMaps[pod.Name] = pod
-	}
-
-	for _, name := range names {
-		m := &Member{
-			Name:            name,
-			Namespace:       cluster.Namespace,
-			Created:         false,
-			RunningAndReady: false,
-		}
-
-		if pod, ok := podMaps[name]; ok {
-			m.Created = true
-			m.RunningAndReady = IsRunningAndReady(&pod)
-			m.Version = pod.Labels[dsv1alpha1.DsVersionLabel]
-		}
-		members.Add(m)
-	}
-	return members, nil
-}
-
 func newDSWorkerPod(cr *dsv1alpha1.DSWorker) *corev1.Pod {
 	var podName = cr.Name + "-pod" + dsv1alpha1.RandStr(6)
 	return &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      podName,
 			Namespace: cr.Namespace,
-			Labels: map[string]string{dsv1alpha1.DsAppName: dsWorkerLabel,
+			Labels: map[string]string{dsv1alpha1.DsAppName: dsv1alpha1.DsWorkerLabel,
 				dsv1alpha1.DsVersionLabel: cr.Spec.Version,
 				dsv1alpha1.DsServiceLabel: dsv1alpha1.DsServiceLabelValue,
 			},
@@ -144,13 +102,6 @@ func newDSWorkerPod(cr *dsv1alpha1.DSWorker) *corev1.Pod {
 			},
 		},
 	}
-}
-
-func (r *DSWorkerReconciler) ensureDSWorkerDeleted(ctx context.Context, dsWorker *dsv1alpha1.DSWorker) error {
-	if err := r.Client.Delete(ctx, dsWorker, client.PropagationPolicy(metav1.DeletePropagationOrphan)); err != nil {
-		return err
-	}
-	return nil
 }
 
 func (r *DSWorkerReconciler) newDSWorkerPod(ctx context.Context, cluster *dsv1alpha1.DSWorker) (*corev1.Pod, error) {

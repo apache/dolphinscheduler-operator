@@ -68,9 +68,6 @@ type DSWorkerSpec struct {
 
 	//LibPvcName define the address of lib pvc,the position is /opt/soft
 	LibPvcName string `json:"lib_pvc_name,omitempty"`
-
-	//AlertConfig is the config of alertService
-	AlertConfig *AlertConfig `json:"alert_config,omitempty"`
 }
 
 // DSWorkerStatus defines the observed state of DSWorker
@@ -93,12 +90,18 @@ type DSWorkerStatus struct {
 
 	// Members are the dsWorker members in the cluster
 	Members MembersStatus `json:"members,omitempty"`
+
+	// Selector must be the string form of the selector
+	Selector string `json:"selector"`
 }
 
 //+kubebuilder:object:root=true
+//+kubebuilder:printcolumn:name="replicas",type="integer",JSONPath=".spec.replicas"
+//+kubebuilder:printcolumn:name="repository",type="string",JSONPath=".spec.repository"
+//+kubebuilder:printcolumn:name="version",type="string",JSONPath=".spec.version"
+//+kubebuilder:printcolumn:name="controlPaused",type="boolean",JSONPath=".spec.controlPaused"
 //+kubebuilder:subresource:status
-
-// DSWorker is the Schema for the dsworkers API
+//+kubebuilder:subresource:scale:specpath=.spec.replicas,statuspath=.status.replicas,selectorpath=.status.selector
 type DSWorker struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -108,7 +111,6 @@ type DSWorker struct {
 }
 
 //+kubebuilder:object:root=true
-
 // DSWorkerList contains a list of DSWorker
 type DSWorkerList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -118,9 +120,4 @@ type DSWorkerList struct {
 
 func init() {
 	SchemeBuilder.Register(&DSWorker{}, &DSWorkerList{})
-}
-
-type AlertConfig struct {
-	ServiceUrl string `json:"service_url,omitempty"`
-	Port       string `json:"port,omitempty"`
 }

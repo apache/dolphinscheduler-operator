@@ -18,35 +18,30 @@ package controllers
 
 import (
 	"context"
-	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"time"
 
 	dsv1alpha1 "dolphinscheduler-operator/api/v1alpha1"
 )
 
-const (
-	dsWorkerLabel  = "ds-worker"
-	dsWorkerConfig = "ds-worker-config"
-)
-
 // DSWorkerReconciler reconciles a DSWorker object
 type DSWorkerReconciler struct {
 	client.Client
-	Log      logr.Logger
 	Scheme   *runtime.Scheme
-	Recorder record.EventRecorder
+	recorder record.EventRecorder
 }
 
 var (
-	worker_logger = ctrl.Log.WithName("DSWorker-controller")
+	workerLogger = ctrl.Log.WithName("DSWorker-controller")
 )
 
 //+kubebuilder:rbac:groups=ds.apache.dolphinscheduler.dev,resources=dsworkers,verbs=get;list;watch;create;update;patch;delete
@@ -62,14 +57,14 @@ var (
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
 func (r *DSWorkerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	worker_logger.Info("dmWorker start reconcile logic")
-	defer worker_logger.Info("dmWorker Reconcile end ---------------------------------------------")
+	workerLogger.Info("dmWorker start reconcile logic")
+	defer workerLogger.Info("dmWorker Reconcile end ---------------------------------------------")
 
 	cluster := &dsv1alpha1.DSWorker{}
 
 	if err := r.Client.Get(ctx, req.NamespacedName, cluster); err != nil {
 		if errors.IsNotFound(err) {
-			r.Recorder.Event(cluster, corev1.EventTypeWarning, "dmWorker is not Found", "dmWorker is not Found")
+			r.recorder.Event(cluster, corev1.EventTypeWarning, "dmWorker is not Found", "dmWorker is not Found")
 			return ctrl.Result{}, nil
 		}
 		return ctrl.Result{}, err
@@ -107,37 +102,45 @@ func (r *DSWorkerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	// If dsworker-cluster is paused, we do nothing on things changed.
 	// Until dsworker-cluster is un-paused, we will reconcile to the dsworker state of that point.
 	if cluster.Spec.Paused {
-		worker_logger.Info("ds-worker control has been paused: ", "ds-worker-name", cluster.Name)
+		workerLogger.Info("ds-worker control has been paused: ", "ds-worker-name", cluster.Name)
 		desired.Status.ControlPaused = true
 		if err := r.Status().Patch(ctx, desired, client.MergeFrom(cluster)); err != nil {
 			return ctrl.Result{}, err
 		}
-		r.Recorder.Event(cluster, corev1.EventTypeNormal, "the spec status is paused", "do nothing")
+		r.recorder.Event(cluster, corev1.EventTypeNormal, "the spec status is paused", "do nothing")
 		return ctrl.Result{}, nil
 	}
 
-	// 1. First time we see the ds-dsworker-cluster, initialize it
+	// 1. First time we see the ds-worker-cluster, initialize it
 	if cluster.Status.Phase == dsv1alpha1.DsPhaseNone {
+		if desired.Status.Selector == "" {
+			selector, err := metav1.LabelSelectorAsSelector(&metav1.LabelSelector{MatchLabels: LabelForWorkerPod()})
+			if err != nil {
+				masterLogger.Error(err, "Error retrieving selector labels")
+				return reconcile.Result{}, err
+			}
+			desired.Status.Selector = selector.String()
+		}
 		desired.Status.Phase = dsv1alpha1.DsPhaseCreating
-		worker_logger.Info("phase had been changed from  none ---> creating")
+		workerLogger.Info("phase had been changed from  none ---> creating")
 		err := r.Client.Status().Patch(ctx, desired, client.MergeFrom(cluster))
 		return ctrl.Result{RequeueAfter: 100 * time.Millisecond}, err
 	}
 
 	// 3. Ensure bootstrapped, we will block here util cluster is up and healthy
-	worker_logger.Info("Ensuring cluster members")
+	workerLogger.Info("Ensuring cluster members")
 	if requeue, err := r.ensureMembers(ctx, cluster); requeue {
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, err
 	}
 
 	// 4. Ensure cluster scaled
-	worker_logger.Info("Ensuring cluster scaled")
+	workerLogger.Info("Ensuring cluster scaled")
 	if requeue, err := r.ensureScaled(ctx, cluster); requeue {
 		return ctrl.Result{Requeue: true, RequeueAfter: 5 * time.Second}, err
 	}
 
 	// .5 Ensure cluster upgraded
-	worker_logger.Info("Ensuring cluster upgraded")
+	workerLogger.Info("Ensuring cluster upgraded")
 	if requeue, err := r.ensureUpgraded(ctx, cluster); requeue {
 		return ctrl.Result{Requeue: true}, err
 	}
@@ -147,13 +150,14 @@ func (r *DSWorkerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, err
 	}
 
-	worker_logger.Info("******************************************************")
+	workerLogger.Info("******************************************************")
 	desired.Status.Phase = dsv1alpha1.DsPhaseNone
 	return ctrl.Result{Requeue: false}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *DSWorkerReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	r.recorder = mgr.GetEventRecorderFor("worker-controller")
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&dsv1alpha1.DSWorker{}).
 		Owns(&corev1.Pod{}).
@@ -185,7 +189,7 @@ func (r *DSWorkerReconciler) ensureScaled(ctx context.Context, cluster *dsv1alph
 	if len(ms) < cluster.Spec.Replicas {
 		err = r.createMember(ctx, cluster)
 		if err != nil {
-			r.Recorder.Event(cluster, corev1.EventTypeWarning, "cannot create the new ds-dsworker pod", "the ds-dsworker pod had been created failed")
+			r.recorder.Event(cluster, corev1.EventTypeWarning, "cannot create the new ds-dsworker pod", "the ds-dsworker pod had been created failed")
 			return true, err
 		}
 		return true, err
@@ -197,7 +201,7 @@ func (r *DSWorkerReconciler) ensureScaled(ctx context.Context, cluster *dsv1alph
 		member := ms.PickOne()
 		pod.SetName(member.Name)
 		pod.SetNamespace(member.Namespace)
-		err = r.deleteMember(ctx, pod)
+		err = r.deleteMember(ctx, pod, cluster)
 		if err != nil {
 			return true, err
 		}
@@ -205,33 +209,6 @@ func (r *DSWorkerReconciler) ensureScaled(ctx context.Context, cluster *dsv1alph
 	}
 
 	return false, nil
-}
-
-func (r *DSWorkerReconciler) createMember(ctx context.Context, cluster *dsv1alpha1.DSWorker) error {
-	worker_logger.Info("Starting add new member to cluster", "cluster", cluster.Name)
-	defer worker_logger.Info("End add new member to cluster", "cluster", cluster.Name)
-
-	// New Pod
-	pod, err := r.newDSWorkerPod(ctx, cluster)
-	if err != nil {
-		return err
-	}
-
-	// Create pod
-	if err = r.Client.Create(ctx, pod); err != nil && !apierrors.IsAlreadyExists(err) {
-		return err
-	}
-	return nil
-}
-
-func (r *DSWorkerReconciler) deleteMember(ctx context.Context, pod *corev1.Pod) error {
-
-	worker_logger.Info("begin delete pod", "pod name", pod.Name)
-	if err := r.Client.Delete(ctx, pod); err != nil && !apierrors.IsNotFound(err) {
-		return err
-	}
-
-	return nil
 }
 
 func (r *DSWorkerReconciler) ensureUpgraded(ctx context.Context, cluster *dsv1alpha1.DSWorker) (bool, error) {
@@ -246,11 +223,56 @@ func (r *DSWorkerReconciler) ensureUpgraded(ctx context.Context, cluster *dsv1al
 			pod := &corev1.Pod{}
 			pod.SetName(memset.Name)
 			pod.SetNamespace(memset.Namespace)
-			if err := r.deleteMember(ctx, pod); err != nil {
+			if err := r.deleteMember(ctx, pod, cluster); err != nil {
 				return false, err
 			}
 			return true, nil
 		}
 	}
 	return false, nil
+}
+
+func (r *DSWorkerReconciler) ensureDSWorkerDeleted(ctx context.Context, cluster *dsv1alpha1.DSWorker) error {
+	if err := r.Client.Delete(ctx, cluster, client.PropagationPolicy(metav1.DeletePropagationOrphan)); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *DSWorkerReconciler) createMember(ctx context.Context, cluster *dsv1alpha1.DSWorker) error {
+	workerLogger.Info("Starting add new member to cluster", "cluster", cluster.Name)
+	defer workerLogger.Info("End add new member to cluster", "cluster", cluster.Name)
+
+	// New Pod
+	pod, err := r.newDSWorkerPod(ctx, cluster)
+	if err != nil {
+		return err
+	}
+
+	// Create pod
+	if err = r.Client.Create(ctx, pod); err != nil && !apierrors.IsAlreadyExists(err) {
+		return err
+	}
+
+	desired := cluster.DeepCopy()
+	desired.Spec.Replicas += 1
+	if err := r.Status().Patch(ctx, desired, client.MergeFrom(cluster)); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *DSWorkerReconciler) deleteMember(ctx context.Context, pod *corev1.Pod, cluster *dsv1alpha1.DSWorker) error {
+
+	workerLogger.Info("begin delete pod", "pod name", pod.Name)
+	if err := r.Client.Delete(ctx, pod); err != nil && !apierrors.IsNotFound(err) {
+		return err
+	}
+
+	desired := cluster.DeepCopy()
+	desired.Spec.Replicas -= 1
+	if err := r.Status().Patch(ctx, desired, client.MergeFrom(cluster)); err != nil {
+		return err
+	}
+	return nil
 }

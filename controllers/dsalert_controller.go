@@ -167,7 +167,7 @@ func (r *DSAlertReconciler) ensureAlertService(ctx context.Context, cluster *dsv
 	namespacedName := types.NamespacedName{Namespace: cluster.Namespace, Name: dsv1alpha1.DsAlertServiceValue}
 	if err := r.Client.Get(ctx, namespacedName, service); err != nil {
 		// Local cache not found
-		logger.Info("get service error")
+		masterLogger.Info("get service error")
 		if apierrors.IsNotFound(err) {
 			service = createAlertService(cluster)
 			if err := controllerutil.SetControllerReference(cluster, service, r.Scheme); err != nil {
