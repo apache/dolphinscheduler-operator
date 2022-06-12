@@ -12,5 +12,5 @@ spec:
     storage: 2Gi
   accessModes:
     - ReadWriteMany
-  hostPath:
+  hostPath:  #change to your document
     path: "/Volumes/ds/pg/data"

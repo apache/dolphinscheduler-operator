@@ -106,6 +106,10 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "DSApi")
 		os.Exit(1)
 	}
+	if err = (&dsv1alpha1.DSMaster{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "DSMaster")
+		os.Exit(1)
+	}
 	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {

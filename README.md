@@ -30,7 +30,7 @@
 
 2. **install  postgres (not required)**
 
-    if had no postgressql ,you can turn into config/ds/ and run *"kubectl apply -f postgreSQL/"* 
+    if had no postgressql ,you can turn into config/ds/ and run *"kubectl apply -f postgreSQL/"* ,but you need to replace your local document to hostPath.path in postgres-pv.yaml first
 
     connect to postgressql and run the sql script in  dolphinscheduler/dolphinscheduler-dao/resources/sql
 
@@ -48,7 +48,7 @@
    
     if you had pv and pvc ,you can config it in config/sameples 
     
-    or you can create it with config/ds/ds-pv.yaml and config/configmap/ds-pvc.yaml
+    or you can create it with config/ds/ds-pv.yaml and config/configmap/ds-pvc.yaml .notice to replace your local document address in hostPath.path in ds-pv.yaml
     
     and you can mount the lib in dolphinscheduler /opt/soft  in config/samples/ds_v1alpha1_dsworker.yaml with paramter named lib_pvc_name  
     
@@ -62,7 +62,7 @@
  
  * in current project  run *"make build&&make manifests && make install && make run"* 
 
- * cd to config/ds/samples
+ * cd to config/samples
 
  * first run *"kubectl apply -f ds_v1alpha1_dsalert.yaml "*
 

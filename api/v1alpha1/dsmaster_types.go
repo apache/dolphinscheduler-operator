@@ -53,6 +53,7 @@ type DSMasterSpec struct {
 
 	//ZookeeperConnect  is the address string of zookeeper ,and it will be written to ENV
 	ZookeeperConnect string `json:"zookeeper_connect,omitempty"`
+
 	// Pod defines the policy to create pod for the dm-master pod.
 	// Updating Pod does not take effect on any existing dm-master pods.
 	Pod *PodPolicy `json:"pod,omitempty"`
