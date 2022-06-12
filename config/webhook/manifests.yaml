@@ -1,0 +1,54 @@
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  creationTimestamp: null
+  name: mutating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-ds-apache-dolphinscheduler-dev-v1alpha1-dsmaster
+  failurePolicy: Fail
+  name: mdsmaster.kb.io
+  rules:
+  - apiGroups:
+    - ds.apache.dolphinscheduler.dev
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - dsmasters
+  sideEffects: None
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  creationTimestamp: null
+  name: validating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-ds-apache-dolphinscheduler-dev-v1alpha1-dsmaster
+  failurePolicy: Fail
+  name: vdsmaster.kb.io
+  rules:
+  - apiGroups:
+    - ds.apache.dolphinscheduler.dev
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - dsmasters
+  sideEffects: None
