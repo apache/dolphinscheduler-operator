@@ -148,6 +148,7 @@ func (r *DSApiReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *DSApiReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	r.Recorder = mgr.GetEventRecorderFor("api-controller")
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&dsv1alpha1.DSApi{}).
 		Owns(&v1.Deployment{}).
@@ -156,7 +157,7 @@ func (r *DSApiReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *DSApiReconciler) ensureDSApiDeleted(ctx context.Context, DSApi *dsv1alpha1.DSApi) error {
-	if err := r.Client.Delete(ctx, DSApi, client.PropagationPolicy(metav1.DeletePropagationOrphan)); err != nil {
+	if err := r.Client.Delete(ctx, DSApi, client.PropagationPolicy(metav1.DeletePropagationBackground)); err != nil {
 		return err
 	}
 	return nil

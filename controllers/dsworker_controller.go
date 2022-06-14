@@ -49,6 +49,7 @@ var (
 //+kubebuilder:rbac:groups=ds.apache.dolphinscheduler.dev,resources=dsworkers/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=ds.apache.dolphinscheduler.dev,resources=dsworkers/finalizers,verbs=update
 //+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;create;delete;list;watch
 //+kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
 
@@ -109,7 +110,12 @@ func (r *DSWorkerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		workerLogger.Info("ds-worker control has been paused: ", "ds-worker-name", cluster.Name)
 		desired.Status.ControlPaused = true
 		if err := r.Status().Patch(ctx, desired, client.MergeFrom(cluster)); err != nil {
-			return ctrl.Result{}, err
+			if apierrors.IsConflict(err) {
+				return ctrl.Result{Requeue: true}, nil
+			} else {
+				masterLogger.Error(err, "unexpected error when worker update status in paused")
+				return ctrl.Result{}, err
+			}
 		}
 		r.recorder.Event(cluster, corev1.EventTypeNormal, "the spec status is paused", "do nothing")
 		return ctrl.Result{}, nil
@@ -127,8 +133,14 @@ func (r *DSWorkerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 		desired.Status.Phase = dsv1alpha1.DsPhaseCreating
 		workerLogger.Info("phase had been changed from  none ---> creating")
-		err := r.Client.Status().Patch(ctx, desired, client.MergeFrom(cluster))
-		return ctrl.Result{RequeueAfter: 100 * time.Millisecond}, err
+		if err := r.Client.Status().Patch(ctx, desired, client.MergeFrom(cluster)); err != nil {
+			if apierrors.IsConflict(err) {
+				return ctrl.Result{RequeueAfter: 100 * time.Millisecond}, err
+			} else {
+				masterLogger.Error(err, "unexpected error when worker update status in creating")
+				return ctrl.Result{}, err
+			}
+		}
 	}
 
 	// 3. Ensure bootstrapped, we will block here util cluster is up and healthy
@@ -151,7 +163,12 @@ func (r *DSWorkerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	desired.Status.Phase = dsv1alpha1.DsPhaseFinished
 	if err := r.Status().Patch(ctx, desired, client.MergeFrom(cluster)); err != nil {
-		return ctrl.Result{}, err
+		if apierrors.IsConflict(err) {
+			return ctrl.Result{Requeue: true}, nil
+		} else {
+			masterLogger.Error(err, "unexpected error when worker update status in finished")
+			return ctrl.Result{}, err
+		}
 	}
 
 	workerLogger.Info("******************************************************")

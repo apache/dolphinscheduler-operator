@@ -15,9 +15,9 @@ spec:
     url: "jdbc:postgresql://172.17.0.4:5432/dolphinscheduler"
     username: "postgresadmin"
     password: "admin12345"
-  hpa:
-    min_replicas: 1
-    max_replicas: 5
-    mem_average_utilization: 85
+#  hpa:
+#    min_replicas: 1
+#    max_replicas: 5
+#    mem_average_utilization: 85
 
 

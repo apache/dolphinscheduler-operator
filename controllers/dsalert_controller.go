@@ -150,6 +150,7 @@ func (r *DSAlertReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *DSAlertReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	r.Recorder = mgr.GetEventRecorderFor("alert-controller")
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&dsv1alpha1.DSAlert{}).
 		Owns(&v1.Deployment{}).
@@ -158,7 +159,7 @@ func (r *DSAlertReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *DSAlertReconciler) ensureDSAlertDeleted(ctx context.Context, DSAlert *dsv1alpha1.DSAlert) error {
-	if err := r.Client.Delete(ctx, DSAlert, client.PropagationPolicy(metav1.DeletePropagationOrphan)); err != nil {
+	if err := r.Client.Delete(ctx, DSAlert, client.PropagationPolicy(metav1.DeletePropagationBackground)); err != nil {
 		return err
 	}
 	return nil

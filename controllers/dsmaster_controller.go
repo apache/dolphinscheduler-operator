@@ -18,12 +18,11 @@ package controllers
 
 import (
 	"context"
-	"sync"
+	"k8s.io/api/autoscaling/v2beta2"
 	"time"
 
-	v2 "k8s.io/api/autoscaling/v2"
+	dsv1alpha1 "dolphinscheduler-operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -36,10 +35,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	dsv1alpha1 "dolphinscheduler-operator/api/v1alpha1"
 )
 
 var (
@@ -51,18 +46,14 @@ type DSMasterReconciler struct {
 	client.Client
 	Scheme   *runtime.Scheme
 	recorder record.EventRecorder
-	clusters sync.Map
-	resyncCh chan event.GenericEvent
 }
 
 //+kubebuilder:rbac:groups=ds.apache.dolphinscheduler.dev,resources=dsmasters,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=ds.apache.dolphinscheduler.dev,resources=dsmasters/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=ds.apache.dolphinscheduler.dev,resources=dsmasters/finalizers,verbs=update
-// +kubebuilder:rbac:groups=autoscaling,resources=horizontalpodautoscalers,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=core,resources=persistentvolumeclaims,verbs=get;create;delete;list;watch
+//+kubebuilder:rbac:groups=autoscaling,resources=horizontalpodautoscalers,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;create;delete;list;watch
 //+kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
 
@@ -81,11 +72,7 @@ func (r *DSMasterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	cluster := &dsv1alpha1.DSMaster{}
 
 	if err := r.Client.Get(ctx, req.NamespacedName, cluster); err != nil {
-		if errors.IsNotFound(err) {
-			r.recorder.Event(cluster, corev1.EventTypeWarning, "dsMaster is not Found", "dsMaster is not Found")
-			return ctrl.Result{}, nil
-		}
-		return ctrl.Result{}, err
+		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 	desired := cluster.DeepCopy()
 
@@ -125,9 +112,14 @@ func (r *DSMasterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		masterLogger.Info("ds-master control has been paused: ", "ds-master-name", cluster.Name)
 		desired.Status.ControlPaused = true
 		if err := r.Status().Patch(ctx, desired, client.MergeFrom(cluster)); err != nil {
-			return ctrl.Result{}, err
+			if apierrors.IsConflict(err) {
+				return ctrl.Result{Requeue: true}, nil
+			} else {
+				masterLogger.Error(err, "unexpected error when master update status in paused")
+				return ctrl.Result{}, err
+			}
 		}
-		r.recorder.Event(cluster, corev1.EventTypeNormal, "the spec status is paused", "do nothing")
+		r.recorder.Event(cluster, corev1.EventTypeNormal, "the master spec status is paused", "do nothing")
 		return ctrl.Result{}, nil
 	}
 
@@ -135,8 +127,15 @@ func (r *DSMasterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	if cluster.Status.Phase == dsv1alpha1.DsPhaseNone {
 		desired.Status.Phase = dsv1alpha1.DsPhaseCreating
 		masterLogger.Info("phase had been changed from  none ---> creating")
-		err := r.Client.Status().Patch(ctx, desired, client.MergeFrom(cluster))
-		return ctrl.Result{RequeueAfter: 100 * time.Millisecond}, err
+		if err := r.Client.Status().Patch(ctx, desired, client.MergeFrom(cluster)); err != nil {
+
+			if apierrors.IsConflict(err) {
+				return ctrl.Result{RequeueAfter: 100 * time.Millisecond}, err
+			} else {
+				masterLogger.Error(err, "unexpected error when master update status in creating")
+				return ctrl.Result{}, err
+			}
+		}
 	}
 
 	//2 ensure the headless service
@@ -173,7 +172,12 @@ func (r *DSMasterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	desired.Status.Phase = dsv1alpha1.DsPhaseFinished
 	if err := r.Status().Patch(ctx, desired, client.MergeFrom(cluster)); err != nil {
-		return ctrl.Result{}, err
+		if apierrors.IsConflict(err) {
+			return ctrl.Result{Requeue: true}, nil
+		} else {
+			masterLogger.Error(err, "unexpected error when master update status in finished")
+			return ctrl.Result{}, err
+		}
 	}
 
 	masterLogger.Info("******************************************************")
@@ -186,8 +190,6 @@ func (r *DSMasterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *DSMasterReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	r.clusters = sync.Map{}
-	r.resyncCh = make(chan event.GenericEvent)
 	r.recorder = mgr.GetEventRecorderFor("master-controller")
 
 	filter := &Predicate{}
@@ -195,8 +197,7 @@ func (r *DSMasterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&dsv1alpha1.DSMaster{}).
 		Owns(&corev1.Pod{}).
 		Owns(&corev1.Service{}).
-		Owns(&v2.HorizontalPodAutoscaler{}).
-		Watches(&source.Channel{Source: r.resyncCh}, &handler.EnqueueRequestForObject{}).
+		Owns(&v2beta2.HorizontalPodAutoscaler{}).
 		// or use WithEventFilter()
 		WithEventFilter(filter).
 		Complete(r)
@@ -407,7 +408,7 @@ func (r *DSMasterReconciler) predicateUpdate(member *Member, cluster *dsv1alpha1
 }
 
 func (r *DSMasterReconciler) ensureHPA(ctx context.Context, cluster *dsv1alpha1.DSMaster) error {
-	hpa := &v2.HorizontalPodAutoscaler{}
+	hpa := &v2beta2.HorizontalPodAutoscaler{}
 	namespacedName := types.NamespacedName{Namespace: cluster.Namespace, Name: dsv1alpha1.DsWorkerHpa}
 	if err := r.Client.Get(ctx, namespacedName, hpa); err != nil {
 		// Local cache not found
@@ -425,7 +426,7 @@ func (r *DSMasterReconciler) ensureHPA(ctx context.Context, cluster *dsv1alpha1.
 		}
 	}
 
-	if &hpa != nil && cluster.Spec.HpaPolicy == nil {
+	if hpa.Kind != "" && cluster.Spec.HpaPolicy == nil {
 		if err := r.deleteHPA(ctx, hpa); err != nil {
 			masterLogger.Info("delete hpa error")
 			return err

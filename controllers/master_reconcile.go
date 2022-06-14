@@ -19,8 +19,8 @@ package controllers
 import (
 	"context"
 	dsv1alpha1 "dolphinscheduler-operator/api/v1alpha1"
+	"k8s.io/api/autoscaling/v2beta2"
 
-	v2 "k8s.io/api/autoscaling/v2"
 	_ "k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -106,7 +106,7 @@ func newDSMasterPod(cr *dsv1alpha1.DSMaster) *corev1.Pod {
 }
 
 func (r *DSMasterReconciler) ensureDSMasterDeleted(ctx context.Context, DSMaster *dsv1alpha1.DSMaster) error {
-	if err := r.Client.Delete(ctx, DSMaster, client.PropagationPolicy(metav1.DeletePropagationOrphan)); err != nil {
+	if err := r.Client.Delete(ctx, DSMaster, client.PropagationPolicy(metav1.DeletePropagationBackground)); err != nil {
 		return err
 	}
 	return nil
@@ -140,15 +140,15 @@ func createMasterService(cluster *dsv1alpha1.DSMaster) *corev1.Service {
 	return &service
 }
 
-func (r *DSMasterReconciler) createHPA(cluster *dsv1alpha1.DSMaster) *v2.HorizontalPodAutoscaler {
-	hpa := v2.HorizontalPodAutoscaler{
+func (r *DSMasterReconciler) createHPA(cluster *dsv1alpha1.DSMaster) *v2beta2.HorizontalPodAutoscaler {
+	hpa := v2beta2.HorizontalPodAutoscaler{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            dsv1alpha1.DsWorkerHpa,
 			Namespace:       cluster.Namespace,
 			ResourceVersion: dsv1alpha1.DSVersion,
 		},
-		Spec: v2.HorizontalPodAutoscalerSpec{
-			ScaleTargetRef: v2.CrossVersionObjectReference{
+		Spec: v2beta2.HorizontalPodAutoscalerSpec{
+			ScaleTargetRef: v2beta2.CrossVersionObjectReference{
 				Kind:       dsv1alpha1.DsWorkerKind,
 				Name:       dsv1alpha1.DsWorkerLabel,
 				APIVersion: dsv1alpha1.APIVersion,
@@ -159,12 +159,12 @@ func (r *DSMasterReconciler) createHPA(cluster *dsv1alpha1.DSMaster) *v2.Horizon
 	}
 
 	if cluster.Spec.HpaPolicy.CPUAverageUtilization > 0 {
-		hpa.Spec.Metrics = append(hpa.Spec.Metrics, v2.MetricSpec{
-			Type: v2.ResourceMetricSourceType,
-			Resource: &v2.ResourceMetricSource{
+		hpa.Spec.Metrics = append(hpa.Spec.Metrics, v2beta2.MetricSpec{
+			Type: v2beta2.ResourceMetricSourceType,
+			Resource: &v2beta2.ResourceMetricSource{
 				Name: corev1.ResourceCPU,
-				Target: v2.MetricTarget{
-					Type:               v2.UtilizationMetricType,
+				Target: v2beta2.MetricTarget{
+					Type:               v2beta2.UtilizationMetricType,
 					AverageUtilization: &cluster.Spec.HpaPolicy.CPUAverageUtilization,
 				},
 			},
@@ -172,12 +172,12 @@ func (r *DSMasterReconciler) createHPA(cluster *dsv1alpha1.DSMaster) *v2.Horizon
 	}
 
 	if cluster.Spec.HpaPolicy.MEMAverageUtilization > 0 {
-		hpa.Spec.Metrics = append(hpa.Spec.Metrics, v2.MetricSpec{
-			Type: v2.ResourceMetricSourceType,
-			Resource: &v2.ResourceMetricSource{
+		hpa.Spec.Metrics = append(hpa.Spec.Metrics, v2beta2.MetricSpec{
+			Type: v2beta2.ResourceMetricSourceType,
+			Resource: &v2beta2.ResourceMetricSource{
 				Name: corev1.ResourceMemory,
-				Target: v2.MetricTarget{
-					Type:               v2.UtilizationMetricType,
+				Target: v2beta2.MetricTarget{
+					Type:               v2beta2.UtilizationMetricType,
 					AverageUtilization: &cluster.Spec.HpaPolicy.MEMAverageUtilization,
 				},
 			},
@@ -187,7 +187,7 @@ func (r *DSMasterReconciler) createHPA(cluster *dsv1alpha1.DSMaster) *v2.Horizon
 	return &hpa
 }
 
-func (r *DSMasterReconciler) deleteHPA(ctx context.Context, hpa *v2.HorizontalPodAutoscaler) error {
+func (r *DSMasterReconciler) deleteHPA(ctx context.Context, hpa *v2beta2.HorizontalPodAutoscaler) error {
 	if err := r.Client.Delete(ctx, hpa, client.PropagationPolicy(metav1.DeletePropagationOrphan)); err != nil {
 		return err
 	}
