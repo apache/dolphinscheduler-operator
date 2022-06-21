@@ -60,7 +60,7 @@ func newDSWorkerPod(cr *dsv1alpha1.DSWorker) *corev1.Pod {
 			Name:      podName,
 			Namespace: cr.Namespace,
 			Labels: map[string]string{dsv1alpha1.DsAppName: dsv1alpha1.DsWorkerLabel,
-				dsv1alpha1.DsVersionLabel: cr.Spec.Version,
+				dsv1alpha1.DsVersionLabel: ImageName(cr.Spec.Repository, cr.Spec.Version),
 				dsv1alpha1.DsServiceLabel: dsv1alpha1.DsServiceLabelValue,
 			},
 		},
