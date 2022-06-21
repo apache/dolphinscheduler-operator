@@ -7,17 +7,15 @@ metadata:
     app: ds-master
 spec:
   replicas: 1
-  zookeeper_connect: "172.17.0.5:2181"
+  zookeeper_connect: "zookeeper-service:2181"
   version: 3.0.0-alpha
   repository: apache/dolphinscheduler-master
   datasource:
     drive_name: "org.postgresql.Driver"
-    url: "jdbc:postgresql://172.17.0.4:5432/dolphinscheduler"
+    url: "jdbc:postgresql://postgres-service:5432/dolphinscheduler"
     username: "postgresadmin"
     password: "admin12345"
 #  hpa:
 #    min_replicas: 1
 #    max_replicas: 5
 #    mem_average_utilization: 85
-
-
