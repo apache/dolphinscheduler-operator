@@ -1,0 +1,23 @@
+
+name: CI
+
+on:
+  pull_request:
+  push:
+
+concurrency:
+  group: dolphinscheduler-operator-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  license-header:
+    if: github.event_name == 'schedule' && github.repository == 'apache/dolphinscheduler-operator'
+    name: License header
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+      - name: Check license header
+        uses: apache/skywalking-eyes/header@211d1623e027fb5779254fbd93871c00ec069a2b
