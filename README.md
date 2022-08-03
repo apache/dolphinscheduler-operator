@@ -48,7 +48,6 @@ You need to replace the `hostPath.path` in `postgres-pv.yaml` if you don't have 
 Connect to PostgreSQL and initialize the database schema by executing
 [`dolphinscheduler/dolphinscheduler-dao/src/main/resources/sql/dolphinscheduler_postgresql.sql`](https://github.com/apache/dolphinscheduler/blob/dev/dolphinscheduler-dao/src/main/resources/sql/dolphinscheduler_postgresql.sql).
 
-
 - Install zookeeper (Optional)
 
 If you don't have a running zookeeper, the demo doployment file is in `config/ds/zookeeper`,
@@ -65,16 +64,23 @@ And you can mount the lib in dolphinscheduler `/opt/soft`  in config/samples/ds_
 
 Mount the logs in `/opt/dolphinscheduler/logs` with the pvcname named `log_pvc_name`.
 
- ## how to test
+## how to test
 
- * replace the database config and zookeeper config paramters in config/samples/*.yaml
+* Replace the database config and zookeeper config paramters in [`config/samples/`](./config/samples/).
 
- * replace the nodeport in *config/samples/ds_v1alpha1_api.yaml*
+* Replace the nodeport in [`config/samples/ds_v1alpha1_api.yaml`](./config/samples/ds_v1alpha1_dsapi.yaml)
 
- * in current project  run *"make build && make manifests && make install && make run"*
+* Install CRDs and controller
 
- * cd to config/samples
+```shell
+export IMG=ghcr.io/apache/dolphinscheduler-operator:latest
+make build && make manifests && make install && make deploy
+```
 
- * first run *"kubectl apply -f ds_v1alpha1_dsalert.yaml "*
+* Deploy the sample
 
- * then run  *"kubectl apply -f ds_v1alpha1_api.yaml -f ds_v1alpha1_dsmaster.yaml -f ds_v1alpha1_dsworker.yaml "*
+```shell
+cd config/samples
+kubectl apply -f ds_v1alpha1_dsalert.yaml
+kubectl apply -f ds_v1alpha1_api.yaml -f ds_v1alpha1_dsmaster.yaml -f ds_v1alpha1_dsworker.yaml
+```
