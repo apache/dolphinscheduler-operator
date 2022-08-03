@@ -23,6 +23,7 @@ header:
 
   paths-ignore:
     - go.sum
+    - go.mod
     - '**/*.json'
 
   comment: on-failure
