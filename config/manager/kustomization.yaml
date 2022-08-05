@@ -30,4 +30,4 @@ kind: Kustomization
 images:
 - name: controller
   newName: apache/dolphinscheduler-operator
-  newTag: latest
+  newTag: 0.1.0

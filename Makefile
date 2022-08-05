@@ -51,6 +51,10 @@ all: build
 # More info on the awk command:
 # http://linuxcommand.org/lc3_adv_awk.php
 
+.PHONY: clean
+clean:
+	rm -rf ./release
+
 .PHONY: help
 help: ## Display this help.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
@@ -149,9 +153,15 @@ endef
 
 release-binary:
 	mkdir -p release/bin
+	cp LICENSE release/bin
+	cp NOTICE release/bin
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 	$(KUSTOMIZE) build config/default > release/bin/operator.yaml
 	cp -R config/samples release/bin/samples
+	tar -czf ./release/bin/dolphinscheduler-operator-${RELEASE_VERSION}-bin.tgz \
+		release/bin
+	gpg --batch --yes --armor --detach-sig ./release/bin/dolphinscheduler-operator-${RELEASE_VERSION}-bin.tgz
+	shasum -a 512 ./release/bin/dolphinscheduler-operator-${RELEASE_VERSION}-bin.tgz > ./release/bin/dolphinscheduler-operator-${RELEASE_VERSION}-bin.tgz.sha512
 
 .PHONY: release-source
 release-source:
@@ -172,5 +182,7 @@ release-source:
 		--exclude="*.out"  \
 		-czf ./release/src/dolphinscheduler-operator-${RELEASE_VERSION}-src.tgz \
 		.
+	gpg --batch --yes --armor --detach-sig ./release/src/dolphinscheduler-operator-${RELEASE_VERSION}-src.tgz
+	shasum -a 512 ./release/src/dolphinscheduler-operator-${RELEASE_VERSION}-src.tgz > ./release/src/dolphinscheduler-operator-${RELEASE_VERSION}-src.tgz.sha512
 
-release: release-binary release-source
+release: clean release-binary release-source
