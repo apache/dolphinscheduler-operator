@@ -15,8 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 
+RELEASE_VERSION ?= latest
+
 # Image URL to use all building/pushing image targets
-IMG ?= apache/dolphinscheduler-operator:latest
+IMG ?= apache/dolphinscheduler-operator:$(RELEASE_VERSION)
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.23
 
@@ -144,3 +146,31 @@ GOBIN=$(PROJECT_DIR)/bin go get $(2) ;\
 rm -rf $$TMP_DIR ;\
 }
 endef
+
+release-binary:
+	mkdir -p release/bin
+	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
+	$(KUSTOMIZE) build config/default > release/bin/operator.yaml
+	cp -R config/samples release/bin/samples
+
+.PHONY: release-source
+release-source:
+	mkdir -p release/src
+	tar \
+		--exclude=".DS_Store" \
+		--exclude=".git" \
+		--exclude=".github" \
+		--exclude=".gitignore" \
+		--exclude=".asf.yaml" \
+		--exclude=".idea" \
+		--exclude=".vscode" \
+		--exclude="bin"  \
+		--exclude="operator/bin"  \
+		--exclude="adapter/bin"  \
+		--exclude="release"  \
+		--exclude="*.test"  \
+		--exclude="*.out"  \
+		-czf ./release/src/dolphinscheduler-operator-${RELEASE_VERSION}-src.tgz \
+		.
+
+release: release-binary release-source
