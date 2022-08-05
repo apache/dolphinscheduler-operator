@@ -41,7 +41,11 @@ kubectl create namespace ds
 
 - Install PostgreSQL database (Optional)
 
-If you don't have a running database, you can run `kubectl apply -f config/ds/postgreSQL`
+If you don't have a running database, you can run 
+```shell
+kubectl apply -f config/ds/postgreSQL
+```
+
 to create a demo database, note that this is only for demonstration, DO NOT use it in production environment.
 You need to replace the `hostPath.path` in `postgres-pv.yaml` if you don't have a directory `/var/lib/data`.
 
@@ -51,7 +55,11 @@ Connect to PostgreSQL and initialize the database schema by executing
 - Install zookeeper (Optional)
 
 If you don't have a running zookeeper, the demo doployment file is in `config/ds/zookeeper`,
-run `kubectl apply -f config/ds/zookeeper`.
+
+```shell
+kubectl apply -f config/ds/zookeeper
+```
+
 
 - Create pv and pvc (Optional)
 
@@ -64,6 +72,20 @@ And you can mount the lib in dolphinscheduler `/opt/soft`  in config/samples/ds_
 
 Mount the logs in `/opt/dolphinscheduler/logs` with the pvcname named `log_pvc_name`.
 
+
+## query the status of worker
+
+```shell
+kubectl get dsworkers.ds.apache.dolphinscheduler.dev -n ds
+```
+
+
+## api explain
+
+```shell
+kubectl explain dsmaster
+```
+
 ## how to test
 
 * Replace the database config and zookeeper config paramters in [`config/samples/`](./config/samples/).
@@ -71,6 +93,9 @@ Mount the logs in `/opt/dolphinscheduler/logs` with the pvcname named `log_pvc_n
 * Replace the nodeport in [`config/samples/ds_v1alpha1_api.yaml`](./config/samples/ds_v1alpha1_dsapi.yaml)
 
 * Install CRDs and controller
+
+
+## how to deploy
 
 ```shell
 export IMG=ghcr.io/apache/dolphinscheduler-operator:latest
