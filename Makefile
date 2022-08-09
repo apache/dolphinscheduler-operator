@@ -153,15 +153,18 @@ endef
 
 release-binary:
 	mkdir -p release/bin
-	cp LICENSE release/bin
+	cp dist/LICENSE release/bin
+	cp -R dist/licenses release/bin
 	cp NOTICE release/bin
+	cp dist/release-operator.yaml release/bin/operator.yaml
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
-	$(KUSTOMIZE) build config/default > release/bin/operator.yaml
+	$(KUSTOMIZE) build config/default >> release/bin/operator.yaml
 	cp -R config/samples release/bin/samples
-	tar -czf ./release/bin/dolphinscheduler-operator-${RELEASE_VERSION}-bin.tgz \
-		release/bin
-	gpg --batch --yes --armor --detach-sig ./release/bin/dolphinscheduler-operator-${RELEASE_VERSION}-bin.tgz
-	shasum -a 512 ./release/bin/dolphinscheduler-operator-${RELEASE_VERSION}-bin.tgz > ./release/bin/dolphinscheduler-operator-${RELEASE_VERSION}-bin.tgz.sha512
+	pushd release/bin && \
+	tar -czf dolphinscheduler-operator-${RELEASE_VERSION}-bin.tgz * && \
+	gpg --batch --yes --armor --detach-sig dolphinscheduler-operator-${RELEASE_VERSION}-bin.tgz && \
+	shasum -a 512 dolphinscheduler-operator-${RELEASE_VERSION}-bin.tgz > dolphinscheduler-operator-${RELEASE_VERSION}-bin.tgz.sha512 && \
+	popd
 
 .PHONY: release-source
 release-source:
@@ -181,7 +184,7 @@ release-source:
 		--exclude="*.test"  \
 		--exclude="*.out"  \
 		-czf ./release/src/dolphinscheduler-operator-${RELEASE_VERSION}-src.tgz \
-		.
+		*
 	gpg --batch --yes --armor --detach-sig ./release/src/dolphinscheduler-operator-${RELEASE_VERSION}-src.tgz
 	shasum -a 512 ./release/src/dolphinscheduler-operator-${RELEASE_VERSION}-src.tgz > ./release/src/dolphinscheduler-operator-${RELEASE_VERSION}-src.tgz.sha512
 
