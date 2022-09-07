@@ -45,7 +45,7 @@ const (
 	DsShareVolumeName      = "ds-soft"
 	DsShareVolumeMountDir  = "/opt/soft"
 	DSVersion              = "v1alpha1"
-	FinalizerName          = "github.com.nobolity.dolphinscheduler-operator"
+	FinalizerName          = "github.com.apache.dolphinscheduler-operator"
 	EnvZookeeper           = "REGISTRY_ZOOKEEPER_CONNECT_STRING"
 	DsServiceLabel         = "service-name"
 	DsServiceLabelValue    = "ds-service"
