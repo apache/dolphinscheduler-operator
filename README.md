@@ -65,8 +65,16 @@ kubectl apply -f config/ds/zookeeper
 
 If you have pv and pvc, you can config it in `config/sameples`.
 
+<<<<<<< Updated upstream
 Or you can create it with `config/ds/ds-pv.yaml` and `config/configmap/ds-pvc.yaml`.
 Notice to replace the `hostPath.path` in `ds-pv.yaml`.
+=======
+<<<<<<< Updated upstream
+=======
+Or you can create it with `config/ds/ds-pv.yaml` and `config/ds/ds-pvc.yaml`.
+Notice to replace the `hostPath.path` in `ds-pv.yaml`.
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
 
 And you can mount the lib in dolphinscheduler `/opt/soft`  in config/samples/ds_v1alpha1_dsworker.yaml with paramter named lib_pvc_name
 
@@ -104,8 +112,20 @@ make build && make manifests && make install && make deploy
 
 * Deploy the sample
 
+<<<<<<< Updated upstream
 ```shell
 cd config/samples
 kubectl apply -f ds_v1alpha1_dsalert.yaml
 kubectl apply -f ds_v1alpha1_api.yaml -f ds_v1alpha1_dsmaster.yaml -f ds_v1alpha1_dsworker.yaml
 ```
+=======
+<<<<<<< Updated upstream
+ ![image](https://user-images.githubusercontent.com/7134124/171322789-86adfaac-57ad-4e8e-b092-8704b84d20c3.png)
+=======
+```shell
+cd config/samples
+kubectl apply -f ds_v1alpha1_dsalert.yaml
+kubectl apply -f ds_v1alpha1_dsapi.yaml -f ds_v1alpha1_dsmaster.yaml -f ds_v1alpha1_dsworker.yaml
+```
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes

@@ -207,6 +207,8 @@ func (r *DSWorkerReconciler) ensureScaled(ctx context.Context, cluster *dsv1alph
 		return true, err
 	}
 
+	workerLogger.Info("before scale", "podMemberSet", len(ms), "replicas", cluster.Spec.Replicas)
+
 	// Scale up
 	if len(ms) < cluster.Spec.Replicas {
 		err = r.createMember(ctx, cluster)
