@@ -65,7 +65,7 @@ kubectl apply -f config/ds/zookeeper
 
 If you have pv and pvc, you can config it in `config/sameples`.
 
-Or you can create it with `config/ds/ds-pv.yaml` and `config/configmap/ds-pvc.yaml`.
+Or you can create it with `config/ds/ds-pv.yaml` and `config/ds/ds-pvc.yaml`.
 Notice to replace the `hostPath.path` in `ds-pv.yaml`.
 
 And you can mount the lib in dolphinscheduler `/opt/soft`  in config/samples/ds_v1alpha1_dsworker.yaml with paramter named lib_pvc_name
@@ -107,5 +107,5 @@ make build && make manifests && make install && make deploy
 ```shell
 cd config/samples
 kubectl apply -f ds_v1alpha1_dsalert.yaml
-kubectl apply -f ds_v1alpha1_api.yaml -f ds_v1alpha1_dsmaster.yaml -f ds_v1alpha1_dsworker.yaml
+kubectl apply -f ds_v1alpha1_dsapi.yaml -f ds_v1alpha1_dsmaster.yaml -f ds_v1alpha1_dsworker.yaml
 ```
