@@ -15,20 +15,32 @@
 # specific language governing permissions and limitations
 # under the License.
 
-apiVersion: ds.apache.dolphinscheduler.dev/v1alpha1
-kind: DSAlert
+apiVersion: v1
+kind: ServiceAccount
 metadata:
-  name: ds-alert
+  name: ds-service-account
   namespace: ds
-  labels:
-    app: ds-alert
-spec:
-  replicas: 1
-  version: latest
-  repository: ghcr.io/apache/dolphinscheduler/dolphinscheduler-alert-server
-  service_account: "ds-service-account"
-  datasource:
-    drive_name: "org.postgresql.Driver"
-    url: "jdbc:postgresql://postgres-service:5432/dolphinscheduler"
-    username: "postgresadmin"
-    password: "admin12345"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: ds
+  name: ds-role
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get","watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ds-role-binding
+  namespace: ds
+subjects:
+  - kind: ServiceAccount
+    name: ds-service-account
+    namespace: ds
+roleRef:
+  kind: Role
+  name: ds-role
+  apiGroup: rbac.authorization.k8s.io

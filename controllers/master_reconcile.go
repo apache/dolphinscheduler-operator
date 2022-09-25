@@ -67,14 +67,14 @@ func newDSMasterPod(cr *dsv1alpha1.DSMaster) *corev1.Pod {
 			Name:      podName,
 			Namespace: cr.Namespace,
 			Labels: map[string]string{dsv1alpha1.DsAppName: dsv1alpha1.DsMasterLabel,
-				dsv1alpha1.DsVersionLabel: ImageName(cr.Spec.Repository, cr.Spec.Version),
+				dsv1alpha1.DsVersionLabel: cr.Spec.Version,
 				dsv1alpha1.DsServiceLabel: dsv1alpha1.DsServiceLabelValue},
 		},
 		Spec: corev1.PodSpec{
-			Hostname:          podName,
-			Subdomain:         dsv1alpha1.DsServiceLabelValue,
-			SetHostnameAsFQDN: &isSetHostnameAsFQDN,
-
+			Hostname:           podName,
+			Subdomain:          dsv1alpha1.DsServiceLabelValue,
+			SetHostnameAsFQDN:  &isSetHostnameAsFQDN,
+			ServiceAccountName: cr.Spec.ServiceAccount,
 			Containers: []corev1.Container{
 				{
 					Name:            cr.Name,
