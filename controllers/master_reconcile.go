@@ -20,6 +20,7 @@ package controllers
 import (
 	"context"
 	dsv1alpha1 "dolphinscheduler-operator/api/v1alpha1"
+	v1 "k8s.io/api/rbac/v1"
 
 	"k8s.io/api/autoscaling/v2beta2"
 
@@ -194,4 +195,43 @@ func (r *DSMasterReconciler) deleteHPA(ctx context.Context, hpa *v2beta2.Horizon
 		return err
 	}
 	return nil
+}
+
+func (r *DSMasterReconciler) createRole(cluster *dsv1alpha1.DSMaster) *v1.Role {
+	role := v1.Role{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      dsv1alpha1.DsRole,
+			Namespace: cluster.Namespace,
+			Labels:    map[string]string{dsv1alpha1.DsAppName: dsv1alpha1.DsRole},
+		},
+		Rules: []v1.PolicyRule{
+			{
+				Verbs:     []string{"get", "watch"},
+				Resources: []string{"configmaps"},
+				APIGroups: []string{""},
+			}},
+	}
+	return &role
+}
+
+func (r *DSMasterReconciler) createRoleBinding(cluster *dsv1alpha1.DSMaster) *v1.RoleBinding {
+	roleBinding := v1.RoleBinding{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      dsv1alpha1.DsRole,
+			Namespace: cluster.Namespace,
+			Labels:    map[string]string{dsv1alpha1.DsAppName: dsv1alpha1.DsRoleBinding},
+		},
+		Subjects: []v1.Subject{{
+			Kind:      "ServiceAccount",
+			Name:      dsv1alpha1.DsServiceAccount,
+			Namespace: cluster.Namespace,
+		}},
+		RoleRef: v1.RoleRef{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     "Role",
+			Name:     dsv1alpha1.DsRole,
+		},
+	}
+	return &roleBinding
 }
