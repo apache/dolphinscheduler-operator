@@ -75,6 +75,7 @@ func createApiDeployment(cluster *dsv1alpha1.DSApi) *v1.Deployment {
 					},
 				},
 				Spec: corev1.PodSpec{
+					ServiceAccountName: cluster.Spec.ServiceAccount,
 					Containers: []corev1.Container{{
 						Name:            dsv1alpha1.DsApi,
 						Image:           ImageName(cluster.Spec.Repository, cluster.Spec.Version),

@@ -66,6 +66,9 @@ const (
 	DsApiPort              = 12345
 	DsAlertPort            = 50052
 	DsWorkerHpa            = "ds-worker-hpa"
+	DsServiceAccount       = "ds-service-account"
+	DsRole                 = "ds-role"
+	DsRoleBinding          = "ds-role-binding"
 )
 
 // DsCondition represents one current condition of a ds cluster.

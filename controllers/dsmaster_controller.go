@@ -20,6 +20,7 @@ package controllers
 import (
 	"context"
 	"k8s.io/api/autoscaling/v2beta2"
+	v1 "k8s.io/api/rbac/v1"
 	"time"
 
 	dsv1alpha1 "dolphinscheduler-operator/api/v1alpha1"
@@ -57,6 +58,9 @@ type DSMasterReconciler struct {
 //+kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;create;delete;list;watch
 //+kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;create;delete
+//+kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=role,verbs=get;list;create;delete
+//+kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=rolebinding,verbs=get;list;create;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -76,6 +80,21 @@ func (r *DSMasterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 	desired := cluster.DeepCopy()
+
+	sa := &corev1.ServiceAccount{}
+	saReq := ctrl.Request{
+		NamespacedName: types.NamespacedName{
+			Namespace: req.Namespace,
+			Name:      dsv1alpha1.DsServiceAccount,
+		},
+	}
+	err := r.Get(ctx, saReq.NamespacedName, sa)
+	if apierrors.IsNotFound(err) {
+		err := r.createServiceAccountIfNotExists(ctx, cluster)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+	}
 
 	// Handler finalizer
 	// examine DeletionTimestamp to determine if object is under deletion
@@ -199,6 +218,9 @@ func (r *DSMasterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.Pod{}).
 		Owns(&corev1.Service{}).
 		Owns(&v2beta2.HorizontalPodAutoscaler{}).
+		Owns(&corev1.ServiceAccount{}).
+		Owns(&v1.Role{}).
+		Owns(&v1.RoleBinding{}).
 		// or use WithEventFilter()
 		WithEventFilter(filter).
 		Complete(r)
@@ -431,6 +453,63 @@ func (r *DSMasterReconciler) ensureHPA(ctx context.Context, cluster *dsv1alpha1.
 		if err := r.deleteHPA(ctx, hpa); err != nil {
 			masterLogger.Info("delete hpa error")
 			return err
+		}
+	}
+	return nil
+}
+
+// 创建 ServiceAccount
+func (r *DSMasterReconciler) createServiceAccountIfNotExists(ctx context.Context, cluster *dsv1alpha1.DSMaster) (err error) {
+
+	masterLogger.Info("start create service account.")
+
+	sa := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      dsv1alpha1.DsServiceAccount,
+			Namespace: cluster.Namespace,
+		},
+	}
+
+	err = r.Create(ctx, sa)
+	if err != nil {
+		masterLogger.Error(err, "create service account error")
+		return err
+	}
+	// binding the sa
+	err = controllerutil.SetControllerReference(cluster, sa, r.Scheme)
+	if err != nil {
+		masterLogger.Error(err, "sa SetControllerReference error")
+		return err
+	}
+
+	ro := &v1.Role{}
+	namespacedName := types.NamespacedName{Namespace: cluster.Namespace, Name: dsv1alpha1.DsRole}
+	if err := r.Client.Get(ctx, namespacedName, ro); err != nil {
+		if apierrors.IsNotFound(err) && !apierrors.IsAlreadyExists(err) {
+			// Remote may already exist, so we will return err, for the next time, this code will not execute
+			ro := r.createRole(cluster)
+			if err := controllerutil.SetControllerReference(cluster, ro, r.Scheme); err != nil {
+				masterLogger.Info("set controller role  error")
+				return err
+			}
+			if err := r.Client.Create(ctx, ro); err != nil {
+				return err
+			}
+		}
+	}
+
+	rb := &v1.RoleBinding{}
+	rbNamespacedName := types.NamespacedName{Namespace: cluster.Namespace, Name: dsv1alpha1.DsRoleBinding}
+	if err := r.Client.Get(ctx, rbNamespacedName, rb); err != nil {
+		if apierrors.IsNotFound(err) && !apierrors.IsAlreadyExists(err) {
+			rb := r.createRoleBinding(cluster)
+			if err := controllerutil.SetControllerReference(cluster, rb, r.Scheme); err != nil {
+				masterLogger.Info("set controller  rolebinding error")
+				return err
+			}
+			if err := r.Client.Create(ctx, rb); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

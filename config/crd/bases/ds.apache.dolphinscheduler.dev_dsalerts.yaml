@@ -1148,6 +1148,8 @@ spec:
                   container images. It should be direct clone of the repository in
                   official By default, it is `apache/dolphinscheduler-master`.
                 type: string
+              service_account:
+                type: string
               version:
                 default: 3.0.0-alpha
                 description: Version is the expected version of the ds cluster. The
