@@ -39,8 +39,6 @@ type DSApiSpec struct {
 
 	ZookeeperConnect string `json:"zookeeper_connect,omitempty"`
 
-	ServiceAccount string `json:"service_account,omitempty"`
-
 	// Repository is the name of the repository that hosts
 	// ds container images. It should be direct clone of the repository in official
 	// By default, it is `apache/dolphinscheduler-master`.

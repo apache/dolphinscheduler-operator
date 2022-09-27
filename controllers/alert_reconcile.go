@@ -69,7 +69,7 @@ func createAlertDeployment(cluster *dsv1alpha1.DSAlert) *v1.Deployment {
 					},
 				},
 				Spec: corev1.PodSpec{
-					ServiceAccountName: cluster.Spec.ServiceAccount,
+					ServiceAccountName: dsv1alpha1.DsServiceAccount,
 					Containers: []corev1.Container{{
 						Name:            dsv1alpha1.DsAlert,
 						Image:           ImageName(cluster.Spec.Repository, cluster.Spec.Version),

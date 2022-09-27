@@ -471,6 +471,7 @@ func (r *DSMasterReconciler) createServiceAccountIfNotExists(ctx context.Context
 	}
 
 	err = r.Create(ctx, sa)
+
 	if err != nil {
 		masterLogger.Error(err, "create service account error")
 		return err
@@ -492,6 +493,7 @@ func (r *DSMasterReconciler) createServiceAccountIfNotExists(ctx context.Context
 				masterLogger.Info("set controller role  error")
 				return err
 			}
+			masterLogger.Info("set  role  begin")
 			if err := r.Client.Create(ctx, ro); err != nil {
 				return err
 			}
@@ -507,6 +509,8 @@ func (r *DSMasterReconciler) createServiceAccountIfNotExists(ctx context.Context
 				masterLogger.Info("set controller  rolebinding error")
 				return err
 			}
+
+			masterLogger.Info("set  rolebinding  begin")
 			if err := r.Client.Create(ctx, rb); err != nil {
 				return err
 			}
