@@ -26,7 +26,6 @@ spec:
   replicas: 1
   version: latest
   repository: ghcr.io/apache/dolphinscheduler/dolphinscheduler-alert-server
-  service_account: "ds-service-account"
   datasource:
     drive_name: "org.postgresql.Driver"
     url: "jdbc:postgresql://postgres-service:5432/dolphinscheduler"

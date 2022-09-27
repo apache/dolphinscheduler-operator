@@ -75,7 +75,7 @@ func newDSMasterPod(cr *dsv1alpha1.DSMaster) *corev1.Pod {
 			Hostname:           podName,
 			Subdomain:          dsv1alpha1.DsServiceLabelValue,
 			SetHostnameAsFQDN:  &isSetHostnameAsFQDN,
-			ServiceAccountName: cr.Spec.ServiceAccount,
+			ServiceAccountName: dsv1alpha1.DsServiceAccount,
 			Containers: []corev1.Container{
 				{
 					Name:            cr.Name,

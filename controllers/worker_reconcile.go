@@ -69,7 +69,7 @@ func newDSWorkerPod(cr *dsv1alpha1.DSWorker) *corev1.Pod {
 		Spec: corev1.PodSpec{
 			Hostname:           podName,
 			Subdomain:          dsv1alpha1.DsServiceLabelValue,
-			ServiceAccountName: cr.Spec.ServiceAccount,
+			ServiceAccountName: dsv1alpha1.DsServiceAccount,
 			Containers: []corev1.Container{
 				{
 					Name:            cr.Name,
