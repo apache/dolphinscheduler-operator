@@ -43,8 +43,6 @@ type DSAlertSpec struct {
 	// +kubebuilder:default=apache/dolphinscheduler-master
 	Repository string `json:"repository,omitempty"`
 
-	ServiceAccount string `json:"service_account,omitempty"`
-
 	// Replicas is the expected size of the ms-master.
 	// The ds-master-operator will eventually make the size of the running
 	//  equal to the expected size.
