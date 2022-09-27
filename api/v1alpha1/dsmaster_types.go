@@ -61,6 +61,8 @@ type DSMasterSpec struct {
 
 	HpaPolicy *HpaPolicy `json:"hpa,omitempty"`
 
+	ServiceAccount string `json:"service_account,omitempty"`
+
 	// Paused is to pause the control of the operator for the ds-master .
 	// +kubebuilder:default=false
 	Paused bool `json:"paused,omitempty"`

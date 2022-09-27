@@ -28,6 +28,7 @@ spec:
   zookeeper_connect: "zookeeper-service:2181"
   repository: ghcr.io/apache/dolphinscheduler/dolphinscheduler-api
   node_port: 30002
+  service_account: "ds-service-account"
   datasource:
     drive_name: "org.postgresql.Driver"
     url: "jdbc:postgresql://postgres-service:5432/dolphinscheduler"

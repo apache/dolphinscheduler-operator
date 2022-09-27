@@ -25,6 +25,10 @@ header:
     - go.sum
     - go.mod
     - '**/*.json'
+    - dist/LICENSE.tpl
+    - dist/LICENSE
+    - LICENSE
+    - NOTICE
 
   comment: on-failure
 
