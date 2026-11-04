@@ -68,7 +68,7 @@ If you have pv and pvc, you can config it in `config/sameples`.
 Or you can create it with `config/ds/ds-pv.yaml` and `config/ds/ds-pvc.yaml`.
 Notice to replace the `hostPath.path` in `ds-pv.yaml`.
 
-And you can mount the lib in dolphinscheduler `/opt/soft`  in config/samples/ds_v1alpha1_dsworker.yaml with paramter named lib_pvc_name
+And you can mount the lib in dolphinscheduler `/opt/soft`  in config/samples/ds_v1alpha1_dsworker.yaml with parameter named lib_pvc_name
 
 Mount the logs in `/opt/dolphinscheduler/logs` with the pvcname named `log_pvc_name`.
 
@@ -88,7 +88,7 @@ kubectl explain dsmaster
 
 ## how to test
 
-* Replace the database config and zookeeper config paramters in [`config/samples/`](./config/samples/).
+* Replace the database config and zookeeper config parameters in [`config/samples/`](./config/samples/).
 
 * Replace the nodeport in [`config/samples/ds_v1alpha1_api.yaml`](./config/samples/ds_v1alpha1_dsapi.yaml)
 
